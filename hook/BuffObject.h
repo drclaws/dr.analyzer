@@ -1,0 +1,34 @@
+#pragma once
+
+#include "TransferInfo.h"
+
+#define BUFF_MAX_LENGTH 500
+#define BUFF_MAX_SIZE 76000
+
+
+class BuffObject
+{
+public:
+	const int maxLength = BUFF_MAX_LENGTH;
+	const int maxSize = BUFF_MAX_SIZE;
+
+
+	BuffObject();
+	~BuffObject();
+
+	bool AddInfo(TransferInfo* info);
+	const TransferInfo* GetInfo(int index);
+
+	const int GetSize();
+	const int GetLength();
+
+private:
+	int length = 0;
+	int size = 0;
+
+	int remainsLength = maxLength;
+	int remainsSize = maxSize;
+	
+	TransferInfo **buffer;
+};
+

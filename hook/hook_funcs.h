@@ -3,7 +3,6 @@
 #include "stdafx.h"
 
 
-
 typedef HANDLE(*pCreateFile2)(
 	LPCWSTR                           lpFileName,
 	DWORD                             dwDesiredAccess,

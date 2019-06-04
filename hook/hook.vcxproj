@@ -56,18 +56,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BuffObject.h" />
+    <ClInclude Include="DataTransport.h" />
+    <ClInclude Include="Exporter.h" />
     <ClInclude Include="hook.h" />
     <ClInclude Include="hook_funcs.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TransferInfo.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BuffObject.cpp" />
+    <ClCompile Include="DataTransport.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="Exporter.cpp" />
     <ClCompile Include="hook.cpp" />
     <ClCompile Include="hook_funcs.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TransferInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
