@@ -15,7 +15,7 @@ public:
 	BuffObject();
 	~BuffObject();
 
-	bool AddInfo(TransferInfo* info);
+	bool AddInfo(GatherInfo* info);
 	void* ToMessage();
 
 private:
@@ -25,6 +25,6 @@ private:
 	int remainsLength = maxLength;
 	int remainsSize = maxSize;
 	
-	TransferInfo **buffer;
+	GatherInfo **buffer;
 };
 

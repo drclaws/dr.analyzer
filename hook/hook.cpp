@@ -9,6 +9,7 @@
 
 Gatherer* gatherer;
 
+
 int StartGathering()
 {
 	try {
@@ -43,10 +44,10 @@ void GatherLibraryInfo(void *libHandle)
 
 void WarningFileNameToBig()
 {
-	gatherer->WarningNameToBig(TransFileOpen);
+	gatherer->WarningNameToBig(GatherType::GatherFileOpen);
 }
 
 void WarningLibraryNameToBig()
 {
-	gatherer->WarningNameToBig(TransLibraryOpen);
+	gatherer->WarningNameToBig(GatherType::GatherLibraryOpen);
 }

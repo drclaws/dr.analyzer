@@ -1,30 +1,30 @@
 #pragma once
 
-enum TransferType {
-	TransNone = (INT8)0,
+enum GatherType {
+	GatherNone = (INT8)0,
 
 	// Connection types
-	TransOpen = (INT8)1,
-	TransClose = (INT8)2,
-	TransStillUp = (INT8)3,
+	GatherActivated = (INT8)1,
+	GatherDeactivated = (INT8)2,
+	GatherStillUp = (INT8)3,
 
 	// Info types
-	TransFileOpen = (INT8)20,
-	TransLibraryOpen = (INT8)40,
+	GatherFileOpen = (INT8)20,
+	GatherLibraryOpen = (INT8)40,
 
 	// Error types
-	TransThreadError = (INT8)100,
-	TransDetourError = (INT8)101,
+	//GatherThreadError = (INT8)100,
+	//GatherDetourError = (INT8)101,
 };
 
 
-class TransferInfo {
+class GatherInfo {
 public:
-	TransferInfo();
-	~TransferInfo();
+	GatherInfo();
+	~GatherInfo();
 
-	TransferInfo(INT8 type);
-	TransferInfo(INT8 type, LPCWSTR name, INT32 nameLength);
+	GatherInfo(INT8 type);
+	GatherInfo(INT8 type, LPCWSTR name, INT32 nameLength);
 	
 	INT32 GetSize();
 	void* ToMessageFormat();

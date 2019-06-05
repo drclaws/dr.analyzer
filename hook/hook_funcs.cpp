@@ -3,6 +3,8 @@
 
 #include "hook.h"
 
+#include <detours.h>
+
 
 pCreateFile2  OrigCreateFile2 = NULL;
 pCreateFileA  OrigCreateFileA = NULL;
@@ -10,7 +12,7 @@ pCreateFileW  OrigCreateFileW = NULL;
 pOpenFile	  OrigOpenFile = NULL;
 pOpenFileById OrigOpenFileById = NULL;
 
-HANDLE NewCreateFile2(
+HANDLE WINAPI NewCreateFile2(
 	LPCWSTR                           lpFileName,
 	DWORD                             dwDesiredAccess,
 	DWORD                             dwShareMode,
@@ -18,7 +20,7 @@ HANDLE NewCreateFile2(
 	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
 ) {
 	HANDLE fileHandle = OrigCreateFile2(
-							lpFileName, 
+							lpFileName,
 							dwDesiredAccess, 
 							dwShareMode,
 							dwCreationDisposition,
@@ -31,7 +33,7 @@ HANDLE NewCreateFile2(
 	return fileHandle;
 }
 
-HANDLE NewCreateFileA(
+HANDLE WINAPI NewCreateFileA(
 	LPCSTR                lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -56,7 +58,7 @@ HANDLE NewCreateFileA(
 	return fileHandle;
 }
 
-HANDLE NewCreateFileW(
+HANDLE WINAPI NewCreateFileW(
 	LPCWSTR               lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -81,7 +83,7 @@ HANDLE NewCreateFileW(
 	return fileHandle;
 }
 
-HFILE NewOpenFile(
+HFILE WINAPI NewOpenFile(
 	LPCSTR     lpFileName,
 	LPOFSTRUCT lpReOpenBuff,
 	UINT       uStyle
@@ -98,7 +100,7 @@ HFILE NewOpenFile(
 	return fileHandle;
 }
 
-HANDLE NewOpenFileById(
+HANDLE WINAPI NewOpenFileById(
 	HANDLE                hVolumeHint,
 	LPFILE_ID_DESCRIPTOR  lpFileId,
 	DWORD                 dwDesiredAccess,
@@ -128,7 +130,7 @@ pLoadLibraryW OrigLoadLibraryW = NULL;
 pLoadLibraryExA OrigLoadLibraryExA = NULL;
 pLoadLibraryExW OrigLoadLibraryExW = NULL;
 
-HMODULE NewLoadLibraryA(
+HMODULE WINAPI NewLoadLibraryA(
 	LPCSTR lpLibFileName
 ) {
 	HMODULE libHandle = OrigLoadLibraryA(lpLibFileName);
@@ -140,7 +142,7 @@ HMODULE NewLoadLibraryA(
 	return libHandle;
 }
 
-HMODULE NewLoadLibraryW(
+HMODULE WINAPI NewLoadLibraryW(
 	LPCWSTR lpLibFileName
 ) {
 	HMODULE libHandle = OrigLoadLibraryW(lpLibFileName);
@@ -152,7 +154,7 @@ HMODULE NewLoadLibraryW(
 	return libHandle;
 }
 
-HMODULE NewLoadLibraryExA(
+HMODULE WINAPI NewLoadLibraryExA(
 	LPCSTR lpLibFileName,
 	HANDLE hFile,
 	DWORD  dwFlags
@@ -169,7 +171,7 @@ HMODULE NewLoadLibraryExA(
 	return libHandle;
 }
 
-HMODULE NewLoadLibraryExW(
+HMODULE WINAPI NewLoadLibraryExW(
 	LPCWSTR lpLibFileName,
 	HANDLE  hFile,
 	DWORD   dwFlags
@@ -184,4 +186,39 @@ HMODULE NewLoadLibraryExW(
 	}
 
 	return libHandle;
+}
+
+
+BOOL GetOrigAddresses()
+{
+	if ((OrigCreateFile2 = (pCreateFile2)DetourFindFunction("kernel32.dll", "CreateFile2")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigCreateFileA = (pCreateFileA)DetourFindFunction("kernel32.dll", "CreateFileA")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigCreateFileW = (pCreateFileW)DetourFindFunction("kernel32.dll", "CreateFileW")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigOpenFile = (pOpenFile)DetourFindFunction("kernel32.dll", "OpenFile")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigOpenFileById = (pOpenFileById)DetourFindFunction("kernel32.dll", "OpenFileById")) == NULL) {
+		return FALSE;
+	}
+
+	if ((OrigLoadLibraryA = (pLoadLibraryA)DetourFindFunction("kernel32.dll", "LoadLibraryA")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigLoadLibraryW = (pLoadLibraryW)DetourFindFunction("kernel32.dll", "LoadLibraryW")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigLoadLibraryExA = (pLoadLibraryExA)DetourFindFunction("kernel32.dll", "LoadLibraryExA")) == NULL) {
+		return FALSE;
+	}
+	if ((OrigLoadLibraryExW = (pLoadLibraryExW)DetourFindFunction("kernel32.dll", "LoadLibraryExW")) == NULL) {
+		return FALSE;
+	}
+
+	return TRUE;
 }

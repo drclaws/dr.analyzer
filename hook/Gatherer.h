@@ -42,12 +42,12 @@ private:
 
 	INT64 queueWaiting = 0;
 
-	void AddToBuff(TransferInfo* info);
+	void AddToBuff(GatherInfo* info);
 	void AddLoadedResToBuff();
 	void TransferThreadFunc();
 
-	void DetourFuncs();
-	void ToOrigFuncs();
+	bool DetourFuncs();
+	bool ToOrigFuncs();
 
 };
 

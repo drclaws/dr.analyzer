@@ -20,6 +20,8 @@
 DataTransport::DataTransport()
 {
 	// Create connection
+	DWORD pid = GetCurrentProcessId();
+
 	std::wstring mapping_loc = std::wstring(L"Global\\") + L"dr_analyzer_buffer_" + std::to_wstring(pid);
 	std::wstring mutex_name = std::wstring(L"Global\\") + L"dr_analyzer_mutex_" + std::to_wstring(pid);
 	std::wstring semaphore_loc = std::wstring(L"Global\\") + L"dr_analyzer_semaphore_" + std::to_wstring(pid);
@@ -41,7 +43,7 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMutex == NULL) {
-		this->CloseConnections();
+		this->CloseSharedMemory();
 		throw std::exception("Connection error");
 	}
 
@@ -52,47 +54,46 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportSemaphore == NULL) {
-		this->CloseConnections();
+		this->CloseSharedMemory();
 		throw std::exception("Connection error");
 	}
-
-	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new TransferInfo(TransOpen));
-	this->SendData(buff);
-
-	// Launch sender's thread
-	this->senderThread = new std::thread(this->SenderThreadFunc);
 }
 
 
 DataTransport::~DataTransport()
 {
-	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
+	if (this->SenderActive) {
+		std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
 
-	uniqueLock.lock();
-	this->isDisconnecting = true;
-	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new TransferInfo(TransClose));
-	uniqueLock.unlock();
-
-	this->SendData(buff);
-
-	uniqueLock.lock();
-	while (this->buffQueue.size() > 0) {
-		uniqueLock.unlock();
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		uniqueLock.lock();
+		this->isDisconnecting = true;
+		BuffObject* buff = new BuffObject();
+		buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated));
+		uniqueLock.unlock();
+
+		this->SendData(buff);
+
+		uniqueLock.lock();
+		while (this->buffQueue.size() > 0) {
+			uniqueLock.unlock();
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			uniqueLock.lock();
+		}
+		uniqueLock.unlock();
+
+		this->senderThread->join();
+		delete this->senderThread;
 	}
-	uniqueLock.unlock();
 
-	this->senderThread->join();
-	delete this->senderThread;
-
-	this->CloseConnections();
+	this->CloseSharedMemory();
 }
 
 void DataTransport::SendData(BuffObject* info)
 {
+	if (!this->SenderActive) {
+		return;
+	}
+
 	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
 
 	uniqueLock.lock();
@@ -107,9 +108,31 @@ void DataTransport::SendData(BuffObject* info)
 	uniqueLock.unlock();
 }
 
+bool DataTransport::ActivateSender()
+{
+	if (this->SenderActive) {
+		return false;
+	}
+
+	BuffObject* buff = new BuffObject();
+	buff->AddInfo(new GatherInfo(GatherType::GatherActivated));
+	this->SendData(buff);
+
+	// Launch sender's thread
+	this->senderThread = new std::thread(this->SenderThreadFunc);
+
+	this->SenderActive = true;
+
+	return true;
+}
+
 
 void DataTransport::SenderThreadFunc()
 {
+	if (!this->SenderActive) {
+		return;
+	}
+
 	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
 	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
 
@@ -121,7 +144,7 @@ void DataTransport::SenderThreadFunc()
 		
 		if (this->buffQueue.size() == 0) {
 			BuffObject* buff = new BuffObject();
-			buff->AddInfo(new TransferInfo(TransStillUp));
+			buff->AddInfo(new GatherInfo(GatherType::GatherStillUp));
 			this->buffQueue.push(buff);
 		}
 
@@ -145,25 +168,27 @@ void DataTransport::SenderThreadFunc()
 			delete buff;
 		}
 
-		uniqueLock.unlock();
-
 		if (this->isDisconnecting) {
+			uniqueLock.unlock();
 			break;
 		}
+
+		uniqueLock.unlock();
 	}
+
 }
 
-void DataTransport::CloseConnections() {
+void DataTransport::CloseSharedMemory() {
 	if (this->transportMapping != NULL) {
-		OrigCloseHandle(this->transportMapping);
+		CloseHandle(this->transportMapping);
 		this->transportMapping = NULL;
 	}
 	if (this->transportMutex != NULL) {
-		OrigCloseHandle(this->transportMutex);
+		CloseHandle(this->transportMutex);
 		this->transportMutex = NULL;
 	}
 	if (this->transportSemaphore != NULL) {
-		OrigCloseHandle(this->transportSemaphore);
+		CloseHandle(this->transportSemaphore);
 		this->transportSemaphore = NULL;
 	}
 }

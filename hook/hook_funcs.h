@@ -3,14 +3,14 @@
 #include "stdafx.h"
 
 
-typedef HANDLE(*pCreateFile2)(
+typedef HANDLE(WINAPI *pCreateFile2)(
 	LPCWSTR                           lpFileName,
 	DWORD                             dwDesiredAccess,
 	DWORD                             dwShareMode,
 	DWORD                             dwCreationDisposition,
 	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
 	);
-typedef HANDLE(*pCreateFileA)(
+typedef HANDLE(WINAPI *pCreateFileA)(
 	LPCSTR                lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -19,7 +19,7 @@ typedef HANDLE(*pCreateFileA)(
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
 	);
-typedef HANDLE(*pCreateFileW)(
+typedef HANDLE(WINAPI *pCreateFileW)(
 	LPCWSTR               lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -28,12 +28,12 @@ typedef HANDLE(*pCreateFileW)(
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
 	);
-typedef HFILE(*pOpenFile)(
+typedef HFILE(WINAPI *pOpenFile)(
 	LPCSTR     lpFileName,
 	LPOFSTRUCT lpReOpenBuff,
 	UINT       uStyle
 	);
-typedef HANDLE(*pOpenFileById)(
+typedef HANDLE(WINAPI *pOpenFileById)(
 	HANDLE                hVolumeHint,
 	LPFILE_ID_DESCRIPTOR  lpFileId,
 	DWORD                 dwDesiredAccess,
@@ -48,7 +48,7 @@ extern pCreateFileW  OrigCreateFileW;
 extern pOpenFile	 OrigOpenFile;
 extern pOpenFileById OrigOpenFileById;
 
-HANDLE NewCreateFile2(
+HANDLE WINAPI NewCreateFile2(
 	LPCWSTR                           lpFileName,
 	DWORD                             dwDesiredAccess,
 	DWORD                             dwShareMode,
@@ -56,7 +56,7 @@ HANDLE NewCreateFile2(
 	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
 );
 
-HANDLE NewCreateFileA(
+HANDLE WINAPI NewCreateFileA(
 	LPCSTR                lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -66,7 +66,7 @@ HANDLE NewCreateFileA(
 	HANDLE                hTemplateFile
 );
 
-HANDLE NewCreateFileW(
+HANDLE WINAPI NewCreateFileW(
 	LPCWSTR               lpFileName,
 	DWORD                 dwDesiredAccess,
 	DWORD                 dwShareMode,
@@ -76,13 +76,13 @@ HANDLE NewCreateFileW(
 	HANDLE                hTemplateFile
 );
 
-HFILE NewOpenFile(
+HFILE WINAPI NewOpenFile(
 	LPCSTR     lpFileName,
 	LPOFSTRUCT lpReOpenBuff,
 	UINT       uStyle
 );
 
-HANDLE NewOpenFileById(
+HANDLE WINAPI NewOpenFileById(
 	HANDLE                hVolumeHint,
 	LPFILE_ID_DESCRIPTOR  lpFileId,
 	DWORD                 dwDesiredAccess,
@@ -93,18 +93,18 @@ HANDLE NewOpenFileById(
 
 
 
-typedef HMODULE(*pLoadLibraryA)(
+typedef HMODULE(WINAPI *pLoadLibraryA)(
 	LPCSTR lpLibFileName
 	);
-typedef HMODULE(*pLoadLibraryW)(
+typedef HMODULE(WINAPI *pLoadLibraryW)(
 	LPCWSTR lpLibFileName
 	);
-typedef HMODULE(*pLoadLibraryExA)(
+typedef HMODULE(WINAPI *pLoadLibraryExA)(
 	LPCSTR lpLibFileName,
 	HANDLE hFile,
 	DWORD  dwFlags
 	);
-typedef HMODULE(*pLoadLibraryExW)(
+typedef HMODULE(WINAPI *pLoadLibraryExW)(
 	LPCWSTR lpLibFileName,
 	HANDLE  hFile,
 	DWORD   dwFlags
@@ -115,22 +115,25 @@ extern pLoadLibraryW OrigLoadLibraryW;
 extern pLoadLibraryExA OrigLoadLibraryExA;
 extern pLoadLibraryExW OrigLoadLibraryExW;
 
-HMODULE NewLoadLibraryA(
+HMODULE WINAPI NewLoadLibraryA(
 	LPCSTR lpLibFileName
 );
 
-HMODULE NewLoadLibraryW(
+HMODULE WINAPI NewLoadLibraryW(
 	LPCWSTR lpLibFileName
 );
 
-HMODULE NewLoadLibraryExA(
+HMODULE WINAPI NewLoadLibraryExA(
 	LPCSTR lpLibFileName,
 	HANDLE hFile,
 	DWORD  dwFlags
 );
 
-HMODULE NewLoadLibraryExW(
+HMODULE WINAPI NewLoadLibraryExW(
 	LPCWSTR lpLibFileName,
 	HANDLE  hFile,
 	DWORD   dwFlags
 );
+
+
+BOOL GetOrigAddresses();

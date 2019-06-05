@@ -13,6 +13,7 @@
 #include <detours.h>
 
 #include "DataTransport.h"
+#include "hook_funcs.h"
 
 
 Gatherer* gatherer = NULL;
@@ -25,6 +26,12 @@ Gatherer::Gatherer()
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	uniqueLock.lock();
 
+	if (!this->DetourFuncs()) {
+		delete this->dataTransport;
+		throw std::exception("Detour error");
+	}
+
+	this->dataTransport->ActivateSender();
 	this->queueConnectionThread = new std::thread(this->TransferThreadFunc);
 
 	uniqueLock.unlock();
@@ -38,8 +45,9 @@ Gatherer::~Gatherer()
 	this->isDisconnecting = true;
 	uniqueLock.unlock();
 
-	this->addCv.notify_one();
+	this->ToOrigFuncs();
 
+	this->addCv.notify_one();
 	uniqueLock.lock();
 
 	while (this->buffObj != NULL) {
@@ -53,6 +61,7 @@ Gatherer::~Gatherer()
 
 	delete this->dataTransport;
 	uniqueLock.unlock();
+
 }
 
 
@@ -62,7 +71,7 @@ void Gatherer::AddFileToBuff(HANDLE fileHandle) {
 	// TODO GetFileInfo
 
 
-	this->AddToBuff(new TransferInfo(TransFileOpen, name, nameLength));
+	this->AddToBuff(new GatherInfo(GatherType::GatherFileOpen, name, nameLength));
 }
 
 void Gatherer::AddLibToBuff(HANDLE libHandle) {
@@ -71,15 +80,15 @@ void Gatherer::AddLibToBuff(HANDLE libHandle) {
 	// TODO GetLibInfo
 
 
-	this->AddToBuff(new TransferInfo(TransLibraryOpen, name, nameLength));
+	this->AddToBuff(new GatherInfo(GatherType::GatherLibraryOpen, name, nameLength));
 }
 
 void Gatherer::WarningNameToBig(INT8 fileType)
 {
-	this->AddToBuff(new TransferInfo(fileType, NULL, (INT32)-1));
+	this->AddToBuff(new GatherInfo(fileType, NULL, (INT32)-1));
 }
 
-void Gatherer::AddToBuff(TransferInfo *info) {
+void Gatherer::AddToBuff(GatherInfo *info) {
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	uniqueLock.lock();
 
@@ -163,5 +172,111 @@ void Gatherer::TransferThreadFunc() {
 		if (this->isDisconnecting) {
 			break;
 		}
+	}
+}
+
+bool Gatherer::DetourFuncs()
+{
+	if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourAttach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFile, NewOpenFile) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourTransactionCommit() != NO_ERROR) {
+		return false;
+	}
+}
+
+bool Gatherer::ToOrigFuncs()
+{
+	if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	
+	if (DetourAttach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFile, NewOpenFile) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourTransactionCommit() != NO_ERROR) {
+		return false;
 	}
 }

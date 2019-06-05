@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <queue>
 
 #include "BuffObject.h"
@@ -16,9 +17,10 @@ public:
 	~DataTransport();
 
 	void SendData(BuffObject *info);
+	bool ActivateSender();
 
 private:
-	
+	std::atomic_bool SenderActive = false;
 	bool isDisconnecting = false;
 
 	HANDLE transportMapping = NULL;
@@ -35,6 +37,6 @@ private:
 
 	void SenderThreadFunc();
 
-	void CloseConnections();
+	void CloseSharedMemory();
 };
 

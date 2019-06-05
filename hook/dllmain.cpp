@@ -2,6 +2,7 @@
 #include "stdafx.h"
 
 #include "hook.h"
+#include "hook_funcs.h"
 
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -12,7 +13,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-		return StartGathering();
+		if (GetOrigAddresses() == TRUE) {
+			return StartGathering();
+		}
+		else {
+			return FALSE;
+		}
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
 		break;

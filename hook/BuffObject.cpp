@@ -4,7 +4,7 @@
 
 BuffObject::BuffObject()
 {
-	this->buffer = new TransferInfo*[this->maxLength];
+	this->buffer = new GatherInfo*[this->maxLength];
 }
 
 
@@ -17,7 +17,7 @@ BuffObject::~BuffObject()
 	delete this->buffer;
 }
 
-bool BuffObject::AddInfo(TransferInfo * info)
+bool BuffObject::AddInfo(GatherInfo * info)
 {
 	int size;
 
