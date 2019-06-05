@@ -17,12 +17,11 @@ HANDLE NewCreateFile2(
 	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
 ) {
 	HANDLE file_handle = OrigCreateFile2(
-		lpFileName, 
-		dwDesiredAccess, 
-		dwShareMode,
-		dwCreationDisposition,
-		pCreateExParams
-	);
+							 lpFileName, 
+							 dwDesiredAccess, 
+							 dwShareMode,
+							 dwCreationDisposition,
+							 pCreateExParams);
 
 	return file_handle;
 }
@@ -37,14 +36,13 @@ HANDLE NewCreateFileA(
 	HANDLE                hTemplateFile
 ) {
 	HANDLE file_handle = OrigCreateFileA(
-		lpFileName,
-		dwDesiredAccess,
-		dwShareMode, 
-		lpSecurityAttributes, 
-		dwCreationDisposition, 
-		dwFlagsAndAttributes,
-		hTemplateFile
-	);
+							 lpFileName,
+							 dwDesiredAccess,
+							 dwShareMode, 
+							 lpSecurityAttributes, 
+							 dwCreationDisposition, 
+							 dwFlagsAndAttributes,
+							 hTemplateFile);
 
 	return file_handle;
 }
@@ -59,14 +57,13 @@ HANDLE NewCreateFileW(
 	HANDLE                hTemplateFile
 ) {
 	HANDLE file_handle = OrigCreateFileW(
-		lpFileName,
-		dwDesiredAccess,
-		dwShareMode,
-		lpSecurityAttributes,
-		dwCreationDisposition,
-		dwFlagsAndAttributes,
-		hTemplateFile
-	);
+							 lpFileName,
+							 dwDesiredAccess,
+							 dwShareMode,
+							 lpSecurityAttributes,
+							 dwCreationDisposition,
+							 dwFlagsAndAttributes,
+							 hTemplateFile);
 
 	return file_handle;
 }
@@ -77,10 +74,9 @@ HFILE NewOpenFile(
 	UINT       uStyle
 ) {
 	HFILE file_handle = OrigOpenFile(
-		lpFileName,
-		lpReOpenBuff,
-		uStyle
-	);
+							lpFileName,
+							lpReOpenBuff,
+							uStyle);
 
 	return file_handle;
 }
@@ -94,13 +90,12 @@ HANDLE NewOpenFileById(
 	DWORD                 dwFlagsAndAttributes
 ) {
 	HANDLE file_handle = OrigOpenFileById(
-		hVolumeHint,
-		lpFileId,
-		dwDesiredAccess,
-		dwShareMode,
-		lpSecurityAttributes,
-		dwFlagsAndAttributes
-	);
+							 hVolumeHint,
+							 lpFileId,
+							 dwDesiredAccess,
+							 dwShareMode,
+							 lpSecurityAttributes,
+							 dwFlagsAndAttributes);
 
 	return file_handle;
 }
@@ -133,7 +128,10 @@ HMODULE NewLoadLibraryExA(
 	HANDLE hFile,
 	DWORD  dwFlags
 ) {
-	HMODULE lib_handle = OrigLoadLibraryExA(lpLibFileName, hFile, dwFlags);
+	HMODULE lib_handle = OrigLoadLibraryExA(
+							 lpLibFileName,
+							 hFile,
+							 dwFlags);
 
 	return lib_handle;
 }
@@ -143,7 +141,10 @@ HMODULE NewLoadLibraryExW(
 	HANDLE  hFile,
 	DWORD   dwFlags
 ) {
-	HMODULE lib_handle = OrigLoadLibraryExW(lpLibFileName, hFile, dwFlags);
+	HMODULE lib_handle = OrigLoadLibraryExW(
+							 lpLibFileName,
+							 hFile,
+							 dwFlags);
 
 	return lib_handle;
 }

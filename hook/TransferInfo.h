@@ -4,8 +4,8 @@ enum TransferType {
 	TransNone = (INT8)0,
 
 	// Connection types
-	TransStart = (INT8)1,
-	TransEnd = (INT8)2,
+	TransOpen = (INT8)1,
+	TransClose = (INT8)2,
 	TransStillUp = (INT8)3,
 
 	// Info types

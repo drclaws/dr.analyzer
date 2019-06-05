@@ -51,9 +51,8 @@ DataTransport::DataTransport(int pid)
 		throw std::exception("Connection error");
 	}
 
-	TransferInfo *info = new TransferInfo(TransStart);
 	BuffObject* buff = new BuffObject();
-	buff->AddInfo(info);
+	buff->AddInfo(new TransferInfo(TransOpen));
 	this->SendData(buff);
 
 	// Launch sender's thread
@@ -64,15 +63,50 @@ DataTransport::DataTransport(int pid)
 DataTransport::~DataTransport()
 {
 	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
-	this->queueOperMutex.lock();
-	this->isDisconnecting = true;
-	while (this->buffQueue.size() > 0) {
-		this->queueOperMutex.unlock();
-		this->queueOperEndedCV.wait(this->queueOperMutex);
-	}
 
+	uniqueLock.lock();
+	this->isDisconnecting = true;
+	BuffObject* buff = new BuffObject();
+	buff->AddInfo(new TransferInfo(TransClose));
+	uniqueLock.unlock();
+
+	this->SendData(buff);
+
+	uniqueLock.lock();
+	while (this->buffQueue.size() > 0) {
+		uniqueLock.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		uniqueLock.lock();
+	}
+	uniqueLock.unlock();
+
+	this->senderThread->join();
+	delete this->senderThread;
+
+	this->CloseConnections();
 }
 
+void DataTransport::SendData(BuffObject* info)
+{
+	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
+
+	uniqueLock.lock();
+	if (this->isDisconnecting) {
+		uniqueLock.unlock();
+		return;
+	}
+
+	this->buffQueue.push(info);
+	this->queueOperEndedCV.notify_one();
+
+	uniqueLock.unlock();
+}
+
+
+void DataTransport::SenderThreadFunc()
+{
+	// TODO SenderThreadFunc
+}
 
 void DataTransport::CloseConnections() {
 	if (this->transportMapping != NULL) {

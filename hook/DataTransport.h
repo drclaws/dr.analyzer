@@ -33,11 +33,11 @@ private:
 	
 	std::thread *senderThread = NULL;
 	std::mutex queueOperMutex;
+
+	std::mutex queueOperEndedMutex;
 	std::condition_variable queueOperEndedCV;
 
 	std::queue<BuffObject*> buffQueue;
-
-	std::thread *senderThread = NULL;
 
 	void SenderThreadFunc();
 
