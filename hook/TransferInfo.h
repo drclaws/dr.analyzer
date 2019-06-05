@@ -21,13 +21,17 @@ enum TransferType {
 
 class TransferInfo {
 public:
+	TransferInfo();
+	~TransferInfo();
+
+	TransferInfo(INT8 type);
+	TransferInfo(INT8 type, LPCWSTR name, INT32 nameLength);
+	
+	INT32 GetSize();
+	void* ToMessageFormat();
+
+private:
 	INT8 Type;
 	INT32 nameLength;
 	LPCWSTR name;
-
-	TransferInfo();
-	TransferInfo(INT8 type);
-	TransferInfo(INT8 type, LPCWSTR name, INT32 nameLength);
-
-	INT32 GetSize();
 };

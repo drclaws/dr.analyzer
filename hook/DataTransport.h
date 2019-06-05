@@ -9,14 +9,9 @@
 #include "BuffObject.h"
 
 
-#define MAX_BUFF 76000
-
-
 class DataTransport
 {
 public:
-	const int maxLength = MAX_BUFF;
-
 	DataTransport(int pid);
 	~DataTransport();
 

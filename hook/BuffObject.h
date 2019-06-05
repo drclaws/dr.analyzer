@@ -12,15 +12,11 @@ public:
 	const int maxLength = BUFF_MAX_LENGTH;
 	const int maxSize = BUFF_MAX_SIZE;
 
-
 	BuffObject();
 	~BuffObject();
 
 	bool AddInfo(TransferInfo* info);
-	const TransferInfo* GetInfo(int index);
-
-	const int GetSize();
-	const int GetLength();
+	void* ToMessage();
 
 private:
 	int length = 0;

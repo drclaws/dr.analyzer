@@ -6,6 +6,8 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
+
 #include <string>
 
 #include <detours.h>
@@ -22,33 +24,33 @@ Exporter::Exporter(int pid)
 
 	this->queueConnectionThread = new std::thread(this->TransferThreadFunc);
 
-	// TODO Detour
-
 	uniqueLock.unlock();
 }
 
 Exporter::~Exporter()
 {
+	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 
-}
-/*
-void Exporter::Disconnect() {
-	this->queueMutex->lock();
+	uniqueLock.lock();
 	this->isDisconnecting = true;
+	uniqueLock.unlock();
 
-	// TODO ReDetour
-	// TODO Add Disconnect with last data
-	// TODO Wait Disconnect send
+	this->addCv.notify_one();
 
-	// TODO Disconnect from mapping and mutex
-	this->CloseConnections();
+	uniqueLock.lock();
 
-	this->transferPid = 0;
-	this->isDisconnecting = false;
-	this->isConnected = false;
-	this->queueMutex->unlock();
+	while (this->buffObj != NULL) {
+		uniqueLock.unlock();
+		std::this_thread::sleep_for(std::chrono::microseconds(10));
+		uniqueLock.lock();
+	}
+
+	this->queueConnectionThread->join();
+	delete this->queueConnectionThread;
+
+	delete this->dataTransport;
+	uniqueLock.unlock();
 }
-*/
 
 
 void Exporter::AddFileToBuff(HANDLE fileHandle, bool isOpen) {
@@ -64,8 +66,7 @@ void Exporter::AddFileToBuff(HANDLE fileHandle, bool isOpen) {
 	INT32 nameLength;
 	// TODO GetFileInfo
 
-	TransferInfo *info = new TransferInfo(isOpen ? TransFileOpen : TransFileClose, name, nameLength);
-	this->AddToBuff(info);
+	this->AddToBuff(new TransferInfo(isOpen ? TransFileOpen : TransFileClose, name, nameLength));
 
 	uniqueLock.unlock();
 }
@@ -82,14 +83,36 @@ void Exporter::AddLibToBuff(HANDLE libHandle) {
 	INT32 nameLength;
 	// TODO GetLibInfo
 
-	TransferInfo *info = new TransferInfo(TransLibraryOpen, name, nameLength);
-	this->AddToBuff(info);
+	this->AddToBuff(new TransferInfo(TransLibraryOpen, name, nameLength));
 
 	uniqueLock.unlock();
 }
 
 void Exporter::AddToBuff(TransferInfo *info) {
-	// TODO AddToQueue
+	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
+	uniqueLock.lock();
+
+	if (this->buffObj == NULL) {
+		this->buffObj = new BuffObject();
+	}
+
+	while (!this->buffObj->AddInfo(info)) {
+		this->buffFull = true;
+		this->buffFullCv.notify_one();
+
+		uniqueLock.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		uniqueLock.lock();
+		if (this->buffObj == NULL) {
+			this->buffObj = new BuffObject();
+		}
+	}
+
+	if (!this->threadNotified) {
+		this->addCv.notify_one();
+	}
+
+	uniqueLock.unlock();
 }
 
 
@@ -109,5 +132,39 @@ void Exporter::AddLoadedResToBuff() {
 }
 
 void Exporter::TransferThreadFunc() {
-	// TODO TransferThreadFunc
+	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
+	std::unique_lock<std::mutex> addCVLock(this->addCvMutex);
+	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);
+
+	std::chrono::high_resolution_clock::time_point waitStart;
+	std::chrono::milliseconds duration;
+
+	while (true) {
+		waitStart = std::chrono::high_resolution_clock::now();
+
+		// Wait for buff input 
+		this->addCv.wait(addCVLock);
+		this->threadNotified = true;
+
+		duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - waitStart);
+
+		if (!this->buffFull && duration.count() < 1000ll) {
+			// Wait if package was 
+			this->buffFullCv.wait_for(buffFullCVLock, std::chrono::milliseconds(1000) - duration);
+		}
+
+		uniqueLock.lock();
+
+		if (this->buffObj != NULL) {
+			this->dataTransport->SendData(this->buffObj);
+		}
+		this->buffObj == NULL;
+		this->threadNotified = false;
+		
+		uniqueLock.unlock();
+
+		if (this->isDisconnecting) {
+			break;
+		}
+	}
 }

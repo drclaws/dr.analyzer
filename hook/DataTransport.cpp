@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "DataTransport.h"
 
+#include <Windows.h>
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
+
 #include <exception>
 #include <string>
 
@@ -105,7 +112,47 @@ void DataTransport::SendData(BuffObject* info)
 
 void DataTransport::SenderThreadFunc()
 {
-	// TODO SenderThreadFunc
+	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
+	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
+
+	DWORD waitRes;
+
+	while (true) {
+		this->queueOperEndedCV.wait(cvLock, std::chrono::seconds(5));
+		uniqueLock.lock();
+		
+		if (this->buffQueue.size() == 0) {
+			BuffObject* buff = new BuffObject();
+			buff->AddInfo(new TransferInfo(TransStillUp));
+			this->buffQueue.push(buff);
+		}
+
+		while (!this->buffQueue.empty()) {
+			BuffObject* buff = this->buffQueue.front();
+			
+			// TODO Convert to message
+			
+			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
+			// TODO check status
+
+			// TODO Write to memory
+
+			ReleaseMutex(this->transportMutex);
+
+			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
+			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
+			// TODO check status'
+
+			this->buffQueue.pop();
+			delete buff;
+		}
+
+		uniqueLock.unlock();
+
+		if (this->isDisconnecting) {
+			break;
+		}
+	}
 }
 
 void DataTransport::CloseConnections() {

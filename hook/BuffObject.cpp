@@ -34,13 +34,3 @@ bool BuffObject::AddInfo(TransferInfo * info)
 
 	return true;
 }
-
-const int BuffObject::GetSize()
-{
-	return this->size;
-}
-
-const int BuffObject::GetLength()
-{
-	return this->length;
-}
