@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "Exporter.h"
+#include "Gatherer.h"
 
 #include <Windows.h>
 
@@ -15,9 +15,12 @@
 #include "DataTransport.h"
 
 
-Exporter::Exporter(int pid)
+Gatherer* gatherer = NULL;
+
+
+Gatherer::Gatherer()
 {
-	this->dataTransport = new DataTransport(pid);
+	this->dataTransport = new DataTransport();
 
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	uniqueLock.lock();
@@ -27,7 +30,7 @@ Exporter::Exporter(int pid)
 	uniqueLock.unlock();
 }
 
-Exporter::~Exporter()
+Gatherer::~Gatherer()
 {
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 
@@ -53,44 +56,38 @@ Exporter::~Exporter()
 }
 
 
-void Exporter::AddFileToBuff(HANDLE fileHandle, bool isOpen) {
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-	uniqueLock.lock();
-
-	if (this->isDisconnecting) {
-		uniqueLock.unlock();
-		return;
-	}
-
-	LPCWSTR name;
-	INT32 nameLength;
+void Gatherer::AddFileToBuff(HANDLE fileHandle) {
+	//LPCWSTR name;
+	//INT32 nameLength;
 	// TODO GetFileInfo
 
-	this->AddToBuff(new TransferInfo(isOpen ? TransFileOpen : TransFileClose, name, nameLength));
 
-	uniqueLock.unlock();
+	this->AddToBuff(new TransferInfo(TransFileOpen, name, nameLength));
 }
 
-void Exporter::AddLibToBuff(HANDLE libHandle) {
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-	uniqueLock.lock();
-	if (this->isDisconnecting) {
-		uniqueLock.unlock();
-		return;
-	}
-
-	LPCWSTR name;
-	INT32 nameLength;
+void Gatherer::AddLibToBuff(HANDLE libHandle) {
+	//LPCWSTR name;
+	//INT32 nameLength;
 	// TODO GetLibInfo
 
-	this->AddToBuff(new TransferInfo(TransLibraryOpen, name, nameLength));
 
-	uniqueLock.unlock();
+	this->AddToBuff(new TransferInfo(TransLibraryOpen, name, nameLength));
 }
 
-void Exporter::AddToBuff(TransferInfo *info) {
+void Gatherer::WarningNameToBig(INT8 fileType)
+{
+	this->AddToBuff(new TransferInfo(fileType, NULL, (INT32)-1));
+}
+
+void Gatherer::AddToBuff(TransferInfo *info) {
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	uniqueLock.lock();
+
+	if (this->isDisconnecting) {
+		uniqueLock.unlock();
+		delete info;
+		return;
+	}
 
 	if (this->buffObj == NULL) {
 		this->buffObj = new BuffObject();
@@ -117,7 +114,7 @@ void Exporter::AddToBuff(TransferInfo *info) {
 
 
 
-void Exporter::AddLoadedResToBuff() {
+void Gatherer::AddLoadedResToBuff() {
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	uniqueLock.lock();
 
@@ -131,7 +128,7 @@ void Exporter::AddLoadedResToBuff() {
 	uniqueLock.unlock();
 }
 
-void Exporter::TransferThreadFunc() {
+void Gatherer::TransferThreadFunc() {
 	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	std::unique_lock<std::mutex> addCVLock(this->addCvMutex);
 	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);

@@ -17,14 +17,12 @@
 #include "BuffObject.h"
 
 
-DataTransport::DataTransport(int pid)
+DataTransport::DataTransport()
 {
-	this->pid = pid;
-
 	// Create connection
-	std::wstring mapping_loc = L"dr_analyzer_buffer_" + std::to_wstring(pid);
-	std::wstring mutex_name = L"dr_analyzer_mutex_" + std::to_wstring(pid);
-	std::wstring semaphore_loc = L"dr_analyzer_semaphore_" + std::to_wstring(pid);
+	std::wstring mapping_loc = std::wstring(L"Global\\") + L"dr_analyzer_buffer_" + std::to_wstring(pid);
+	std::wstring mutex_name = std::wstring(L"Global\\") + L"dr_analyzer_mutex_" + std::to_wstring(pid);
+	std::wstring semaphore_loc = std::wstring(L"Global\\") + L"dr_analyzer_semaphore_" + std::to_wstring(pid);
 
 	this->transportMapping = OpenFileMappingW(
 		FILE_MAP_WRITE,

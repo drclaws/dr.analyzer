@@ -12,13 +12,12 @@
 class DataTransport
 {
 public:
-	DataTransport(int pid);
+	DataTransport();
 	~DataTransport();
 
 	void SendData(BuffObject *info);
 
 private:
-	int pid;
 	
 	bool isDisconnecting = false;
 

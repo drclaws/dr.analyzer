@@ -1,6 +1,7 @@
 #include "stdafx.h"
-
 #include "hook_funcs.h"
+
+#include "hook.h"
 
 
 pCreateFile2  OrigCreateFile2 = NULL;
@@ -16,14 +17,18 @@ HANDLE NewCreateFile2(
 	DWORD                             dwCreationDisposition,
 	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
 ) {
-	HANDLE file_handle = OrigCreateFile2(
-							 lpFileName, 
-							 dwDesiredAccess, 
-							 dwShareMode,
-							 dwCreationDisposition,
-							 pCreateExParams);
+	HANDLE fileHandle = OrigCreateFile2(
+							lpFileName, 
+							dwDesiredAccess, 
+							dwShareMode,
+							dwCreationDisposition,
+							pCreateExParams);
+	
+	if (fileHandle != NULL) {
+		GatherFileInfo((void*)fileHandle);
+	}
 
-	return file_handle;
+	return fileHandle;
 }
 
 HANDLE NewCreateFileA(
@@ -35,16 +40,20 @@ HANDLE NewCreateFileA(
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
 ) {
-	HANDLE file_handle = OrigCreateFileA(
-							 lpFileName,
-							 dwDesiredAccess,
-							 dwShareMode, 
-							 lpSecurityAttributes, 
-							 dwCreationDisposition, 
-							 dwFlagsAndAttributes,
-							 hTemplateFile);
+	HANDLE fileHandle = OrigCreateFileA(
+							lpFileName,
+							dwDesiredAccess,
+							dwShareMode, 
+							lpSecurityAttributes, 
+							dwCreationDisposition, 
+							dwFlagsAndAttributes,
+							hTemplateFile);
 
-	return file_handle;
+	if (fileHandle != NULL) {
+		GatherFileInfo((void*)fileHandle);
+	}
+
+	return fileHandle;
 }
 
 HANDLE NewCreateFileW(
@@ -56,16 +65,20 @@ HANDLE NewCreateFileW(
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
 ) {
-	HANDLE file_handle = OrigCreateFileW(
-							 lpFileName,
-							 dwDesiredAccess,
-							 dwShareMode,
-							 lpSecurityAttributes,
-							 dwCreationDisposition,
-							 dwFlagsAndAttributes,
-							 hTemplateFile);
+	HANDLE fileHandle = OrigCreateFileW(
+							lpFileName,
+							dwDesiredAccess,
+							dwShareMode,
+							lpSecurityAttributes,
+							dwCreationDisposition,
+							dwFlagsAndAttributes,
+							hTemplateFile);
 
-	return file_handle;
+	if (fileHandle != NULL) {
+		GatherFileInfo((void*)fileHandle);
+	}
+
+	return fileHandle;
 }
 
 HFILE NewOpenFile(
@@ -73,12 +86,16 @@ HFILE NewOpenFile(
 	LPOFSTRUCT lpReOpenBuff,
 	UINT       uStyle
 ) {
-	HFILE file_handle = OrigOpenFile(
-							lpFileName,
-							lpReOpenBuff,
-							uStyle);
+	HFILE fileHandle = OrigOpenFile(
+						   lpFileName,
+						   lpReOpenBuff,
+						   uStyle);
 
-	return file_handle;
+	if (fileHandle != NULL) {
+		GatherFileInfo((void*)fileHandle);
+	}
+
+	return fileHandle;
 }
 
 HANDLE NewOpenFileById(
@@ -89,15 +106,19 @@ HANDLE NewOpenFileById(
 	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
 	DWORD                 dwFlagsAndAttributes
 ) {
-	HANDLE file_handle = OrigOpenFileById(
-							 hVolumeHint,
-							 lpFileId,
-							 dwDesiredAccess,
-							 dwShareMode,
-							 lpSecurityAttributes,
-							 dwFlagsAndAttributes);
+	HANDLE fileHandle = OrigOpenFileById(
+							hVolumeHint,
+							lpFileId,
+							dwDesiredAccess,
+							dwShareMode,
+							lpSecurityAttributes,
+							dwFlagsAndAttributes);
 
-	return file_handle;
+	if (fileHandle != NULL) {
+		GatherFileInfo((void*)fileHandle);
+	}
+
+	return fileHandle;
 }
 
 
@@ -110,17 +131,25 @@ pLoadLibraryExW OrigLoadLibraryExW = NULL;
 HMODULE NewLoadLibraryA(
 	LPCSTR lpLibFileName
 ) {
-	HMODULE lib_handle = OrigLoadLibraryA(lpLibFileName);
+	HMODULE libHandle = OrigLoadLibraryA(lpLibFileName);
 
-	return lib_handle;
+	if (libHandle != NULL) {
+		GatherLibraryInfo((void*)libHandle);
+	}
+
+	return libHandle;
 }
 
 HMODULE NewLoadLibraryW(
 	LPCWSTR lpLibFileName
 ) {
-	HMODULE lib_handle = OrigLoadLibraryW(lpLibFileName);
+	HMODULE libHandle = OrigLoadLibraryW(lpLibFileName);
 
-	return lib_handle;
+	if (libHandle != NULL) {
+		GatherLibraryInfo((void*)libHandle);
+	}
+
+	return libHandle;
 }
 
 HMODULE NewLoadLibraryExA(
@@ -128,12 +157,16 @@ HMODULE NewLoadLibraryExA(
 	HANDLE hFile,
 	DWORD  dwFlags
 ) {
-	HMODULE lib_handle = OrigLoadLibraryExA(
-							 lpLibFileName,
-							 hFile,
-							 dwFlags);
+	HMODULE libHandle = OrigLoadLibraryExA(
+							lpLibFileName,
+							hFile,
+							dwFlags);
 
-	return lib_handle;
+	if (libHandle != NULL) {
+		GatherLibraryInfo((void*)libHandle);
+	}
+
+	return libHandle;
 }
 
 HMODULE NewLoadLibraryExW(
@@ -141,22 +174,14 @@ HMODULE NewLoadLibraryExW(
 	HANDLE  hFile,
 	DWORD   dwFlags
 ) {
-	HMODULE lib_handle = OrigLoadLibraryExW(
-							 lpLibFileName,
-							 hFile,
-							 dwFlags);
+	HMODULE libHandle = OrigLoadLibraryExW(
+							lpLibFileName,
+							hFile,
+							dwFlags);
 
-	return lib_handle;
-}
+	if (libHandle != NULL) {
+		GatherLibraryInfo((void*)libHandle);
+	}
 
-
-
-pCloseHandle OrigCloseHandle = NULL;
-
-BOOL NewCloseHandle(
-	HANDLE hObject
-) {
-	BOOL is_closed = OrigCloseHandle(hObject);
-
-	return is_closed;
+	return libHandle;
 }

@@ -1,23 +1,15 @@
 #pragma once
 
-#if defined (_MSC_VER)
-#if defined (HOOK_EXPORTS)
-#define HOOK_API __declspec(dllexport)
-#else
-#define HOOK_API __declspec(dllimport)
-#endif
-#else
-#define MY_EXPORT
-#endif
+// Prepares connection and info gathering
+int StartGathering();
 
-int pid;
+// Stops info gathering and closes connection
+int StopGathering();
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void GatherFileInfo(void *fileHandle);
 
-HOOK_API void SetupConnection(int);
+void GatherLibraryInfo(void *libHandle);
 
-#ifdef __cplusplus
-}
-#endif
+void WarningFileNameToBig();
+
+void WarningLibraryNameToBig();

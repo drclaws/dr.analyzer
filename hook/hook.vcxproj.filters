@@ -24,12 +24,6 @@
     <ClInclude Include="hook_funcs.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="hook.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="Exporter.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="DataTransport.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
@@ -39,21 +33,21 @@
     <ClInclude Include="BuffObject.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="hook.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Gatherer.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
-    <ClCompile Include="hook.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="hook_funcs.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
-    <ClCompile Include="Exporter.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="DataTransport.cpp">
@@ -63,6 +57,12 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="BuffObject.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="hook.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Gatherer.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

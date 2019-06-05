@@ -58,7 +58,7 @@
   <ItemGroup>
     <ClInclude Include="BuffObject.h" />
     <ClInclude Include="DataTransport.h" />
-    <ClInclude Include="Exporter.h" />
+    <ClInclude Include="Gatherer.h" />
     <ClInclude Include="hook.h" />
     <ClInclude Include="hook_funcs.h" />
     <ClInclude Include="stdafx.h" />
@@ -69,7 +69,7 @@
     <ClCompile Include="BuffObject.cpp" />
     <ClCompile Include="DataTransport.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="Exporter.cpp" />
+    <ClCompile Include="Gatherer.cpp" />
     <ClCompile Include="hook.cpp" />
     <ClCompile Include="hook_funcs.cpp" />
     <ClCompile Include="stdafx.cpp">

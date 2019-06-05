@@ -10,8 +10,7 @@ enum TransferType {
 
 	// Info types
 	TransFileOpen = (INT8)20,
-	TransFileClose = (INT8)21,
-	TransLibraryOpen = (INT8)22,
+	TransLibraryOpen = (INT8)40,
 
 	// Error types
 	TransThreadError = (INT8)100,

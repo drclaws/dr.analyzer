@@ -28,10 +28,14 @@ TransferInfo::TransferInfo(INT8 type, LPCWSTR name, INT32 nameLength) {
 
 INT32 TransferInfo::GetSize() {
 	const INT32 typesSize = sizeof(this->Type) + sizeof(this->nameLength);
-	if (this->nameLength == 0) {
+	if (this->nameLength > 0) {
+		return typesSize + this->nameLength * sizeof(WCHAR);
+		
+	}
+	else if (this->nameLength == 0) {
 		return sizeof(this->Type);
 	}
 	else {
-		return typesSize + this->nameLength * sizeof(WCHAR);
+		return typesSize;
 	}
 }

@@ -134,15 +134,3 @@ HMODULE NewLoadLibraryExW(
 	HANDLE  hFile,
 	DWORD   dwFlags
 );
-
-
-
-typedef BOOL(*pCloseHandle)(
-	HANDLE hObject
-	);
-
-extern pCloseHandle OrigCloseHandle;
-
-BOOL NewCloseHandle(
-	HANDLE hObject
-);

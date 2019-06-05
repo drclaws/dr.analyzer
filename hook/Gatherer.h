@@ -9,16 +9,18 @@
 
 #include "BuffObject.h"
 #include "DataTransport.h"
+#include "TransferInfo.h"
 
 
-static class Exporter
+class Gatherer
 {
 public:
-	Exporter(int pid);
-	~Exporter();
+	Gatherer();
+	~Gatherer();
 
-	void AddFileToBuff(HANDLE fileHandle, bool isOpen);
+	void AddFileToBuff(HANDLE fileHandle);
 	void AddLibToBuff(HANDLE libHandle);
+	void WarningNameToBig(INT8 fileType);
 
 private:
 	bool isDisconnecting = false;
@@ -43,4 +45,11 @@ private:
 	void AddToBuff(TransferInfo* info);
 	void AddLoadedResToBuff();
 	void TransferThreadFunc();
+
+	void DetourFuncs();
+	void ToOrigFuncs();
+
 };
+
+
+extern Gatherer* gatherer;
