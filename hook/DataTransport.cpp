@@ -140,7 +140,7 @@ void DataTransport::SenderThreadFunc()
 	DWORD waitRes;
 
 	while (true) {
-		this->queueOperEndedCV.wait(cvLock, std::chrono::seconds(5));
+		this->queueOperEndedCV.wait_for(cvLock, std::chrono::seconds(5));
 		uniqueLock.lock();
 		
 		if (this->buffQueue.size() == 0) {
