@@ -28,11 +28,6 @@ typedef HANDLE(WINAPI *pCreateFileW)(
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
 	);
-typedef HFILE(WINAPI *pOpenFile)(
-	LPCSTR     lpFileName,
-	LPOFSTRUCT lpReOpenBuff,
-	UINT       uStyle
-	);
 typedef HANDLE(WINAPI *pOpenFileById)(
 	HANDLE                hVolumeHint,
 	LPFILE_ID_DESCRIPTOR  lpFileId,
@@ -45,7 +40,6 @@ typedef HANDLE(WINAPI *pOpenFileById)(
 extern pCreateFile2  OrigCreateFile2;
 extern pCreateFileA  OrigCreateFileA;
 extern pCreateFileW  OrigCreateFileW;
-extern pOpenFile	 OrigOpenFile;
 extern pOpenFileById OrigOpenFileById;
 
 HANDLE WINAPI NewCreateFile2(
@@ -74,12 +68,6 @@ HANDLE WINAPI NewCreateFileW(
 	DWORD                 dwCreationDisposition,
 	DWORD                 dwFlagsAndAttributes,
 	HANDLE                hTemplateFile
-);
-
-HFILE WINAPI NewOpenFile(
-	LPCSTR     lpFileName,
-	LPOFSTRUCT lpReOpenBuff,
-	UINT       uStyle
 );
 
 HANDLE WINAPI NewOpenFileById(

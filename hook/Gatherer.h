@@ -9,7 +9,7 @@
 
 #include "BuffObject.h"
 #include "DataTransport.h"
-#include "TransferInfo.h"
+#include "GatherInfo.h"
 
 
 class Gatherer
@@ -18,9 +18,7 @@ public:
 	Gatherer();
 	~Gatherer();
 
-	void AddFileToBuff(HANDLE fileHandle);
-	void AddLibToBuff(HANDLE libHandle);
-	void WarningNameToBig(INT8 fileType);
+	void AddToBuff(GatherInfo* info);
 
 private:
 	bool isDisconnecting = false;
@@ -42,7 +40,6 @@ private:
 
 	INT64 queueWaiting = 0;
 
-	void AddToBuff(GatherInfo* info);
 	void AddLoadedResToBuff();
 	void TransferThreadFunc();
 

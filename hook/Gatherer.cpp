@@ -2,6 +2,7 @@
 #include "Gatherer.h"
 
 #include <Windows.h>
+#include <psapi.h>
 
 #include <thread>
 #include <mutex>
@@ -14,6 +15,7 @@
 
 #include "DataTransport.h"
 #include "hook_funcs.h"
+#include "flags.h"
 
 
 Gatherer* gatherer = NULL;
@@ -32,6 +34,9 @@ Gatherer::Gatherer()
 	}
 
 	this->dataTransport->ActivateSender();
+
+	this->AddLoadedResToBuff();
+
 	this->queueConnectionThread = new std::thread(this->TransferThreadFunc);
 
 	uniqueLock.unlock();
@@ -62,30 +67,6 @@ Gatherer::~Gatherer()
 	delete this->dataTransport;
 	uniqueLock.unlock();
 
-}
-
-
-void Gatherer::AddFileToBuff(HANDLE fileHandle) {
-	//LPCWSTR name;
-	//INT32 nameLength;
-	// TODO GetFileInfo
-
-
-	this->AddToBuff(new GatherInfo(GatherType::GatherFileOpen, name, nameLength));
-}
-
-void Gatherer::AddLibToBuff(HANDLE libHandle) {
-	//LPCWSTR name;
-	//INT32 nameLength;
-	// TODO GetLibInfo
-
-
-	this->AddToBuff(new GatherInfo(GatherType::GatherLibraryOpen, name, nameLength));
-}
-
-void Gatherer::WarningNameToBig(INT8 fileType)
-{
-	this->AddToBuff(new GatherInfo(fileType, NULL, (INT32)-1));
 }
 
 void Gatherer::AddToBuff(GatherInfo *info) {
@@ -124,17 +105,36 @@ void Gatherer::AddToBuff(GatherInfo *info) {
 
 
 void Gatherer::AddLoadedResToBuff() {
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-	uniqueLock.lock();
+	const DWORD modulesLength = 500;
+	DWORD modulesSizeNeeded, modulesAmount;
+	
+	HMODULE hModules[modulesLength];
+	BuffObject *buffObj = new BuffObject();
+	GatherInfo* tmpInfo;
 
-	if (this->isDisconnecting) {
-		uniqueLock.unlock();
-		return;
+	if (EnumProcessModules(GetCurrentProcess(), hModules, sizeof(hModules), &modulesSizeNeeded)) {
+		for (int i = 0; i < (modulesAmount = modulesSizeNeeded / sizeof(HMODULE)); i++) {
+			tmpInfo = LibraryHmoduleToInfoObject(hModules[i], GatherFuncType::GatherFilesOnLoad);
+			if (!buffObj->AddInfo(tmpInfo)) {
+				this->dataTransport->SendData(buffObj);
+				buffObj = new BuffObject();
+				buffObj->AddInfo(tmpInfo);
+			}
+		}
 	}
 
-	// TODO GetCurrentInfo
+#ifdef DR_HOOK_TEST
+	else {
+		std::cout << "Cannot acquire libs on load" << std::endl;
+	}
+#endif
 
-	uniqueLock.unlock();
+	if (buffObj->IsEmpty()) {
+		delete buffObj;
+	}
+	else {
+		this->dataTransport->SendData(buffObj);
+	}
 }
 
 void Gatherer::TransferThreadFunc() {
@@ -197,10 +197,6 @@ bool Gatherer::DetourFuncs()
 		DetourTransactionAbort();
 		return false;
 	}
-	if (DetourAttach(&(PVOID&)OrigOpenFile, NewOpenFile) != NO_ERROR) {
-		DetourTransactionAbort();
-		return false;
-	}
 	if (DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
 		DetourTransactionAbort();
 		return false;
@@ -247,10 +243,6 @@ bool Gatherer::ToOrigFuncs()
 		return false;
 	}
 	if (DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
-		DetourTransactionAbort();
-		return false;
-	}
-	if (DetourAttach(&(PVOID&)OrigOpenFile, NewOpenFile) != NO_ERROR) {
 		DetourTransactionAbort();
 		return false;
 	}

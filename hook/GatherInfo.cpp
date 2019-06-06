@@ -1,0 +1,89 @@
+#include "stdafx.h"
+#include "GatherInfo.h"
+
+#include <cstring>
+
+#include "flags.h"
+
+
+GatherInfo::GatherInfo() {
+	this->type = GatherType::GatherNone;
+	this->funcCalled = GatherFuncType::GatherUnknownFunc;
+	this->nameLength = 0;
+	this->name = NULL;
+}
+
+GatherInfo::~GatherInfo() {
+	if (this->name) {
+		delete[] this->name;
+	}
+}
+
+GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode) {
+	this->type = type;
+	this->funcCalled = funcCalled;
+	this->nameLength = emergencyCode;
+	this->name = NULL;
+}
+
+GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name, INT32 nameLength) {
+	this->type = type;
+	this->funcCalled = funcCalled;
+	this->nameLength = nameLength;
+	this->name = name;
+}
+
+INT32 GatherInfo::GetSize() {
+	const INT32 typesSize = sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
+	if (this->nameLength > 0) {
+		return typesSize + this->nameLength * sizeof(WCHAR);
+	}
+	else {
+		return typesSize;
+	}
+}
+
+GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
+{
+	const DWORD size = 256;
+	WCHAR filePath[size];
+
+	DWORD sizeGet;
+	LPWSTR filePathRes;
+
+	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, size - 1, FILE_NAME_NORMALIZED);
+
+	if (sizeGet == 0) {
+		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherCannotGetValue);
+	}
+	if (sizeGet > MAX_NAME_LENGTH) {
+		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherNameTooBig);
+	}
+
+	filePathRes = new WCHAR[sizeGet];
+
+	if (sizeGet > size) {
+		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, sizeGet - 1, FILE_NAME_NORMALIZED);
+	}
+	else {
+		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
+	}
+
+	return new GatherInfo(GatherType::GatherFile, funcCalled, filePathRes, sizeGet);
+}
+
+GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCalled)
+{
+	const DWORD size = 512;
+	WCHAR filePath[size];
+
+	DWORD sizeGet;
+	LPWSTR filePathRes;
+
+	sizeGet = GetModuleFileNameW(libHmodule, filePath, size);
+
+	filePathRes = new WCHAR[sizeGet];
+	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
+
+	return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, sizeGet);
+}

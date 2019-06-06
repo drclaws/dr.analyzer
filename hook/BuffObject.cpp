@@ -4,17 +4,15 @@
 
 BuffObject::BuffObject()
 {
-	this->buffer = new GatherInfo*[this->maxLength];
+
 }
 
 
 BuffObject::~BuffObject()
 {
-	for (int i = 0; i < this->size; i++) {
+	for (int i = 0; i < this->length; i++) {
 		delete this->buffer[i];
 	}
-
-	delete this->buffer;
 }
 
 bool BuffObject::AddInfo(GatherInfo * info)
@@ -33,4 +31,9 @@ bool BuffObject::AddInfo(GatherInfo * info)
 	this->remainsSize -= size;
 
 	return true;
+}
+
+bool BuffObject::IsEmpty()
+{
+	return this->length == 0;
 }

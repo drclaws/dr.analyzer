@@ -4,10 +4,8 @@
 #include <exception>
 
 #include "Gatherer.h"
-#include "TransferInfo.h"
-
-
-Gatherer* gatherer;
+#include "GatherInfo.h"
+#include "flags.h"
 
 
 int StartGathering()
@@ -32,22 +30,12 @@ int StopGathering()
 	return TRUE;
 }
 
-void GatherFileInfo(void *fileHandle)
+void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {
-	gatherer->AddFileToBuff((HANDLE)fileHandle);
+	gatherer->AddToBuff(FileHandleToInfoObject(fileHandle, funcCalled));
 }
 
-void GatherLibraryInfo(void *libHandle)
+void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled)
 {
-	gatherer->AddLibToBuff((HANDLE)libHandle);
-}
-
-void WarningFileNameToBig()
-{
-	gatherer->WarningNameToBig(GatherType::GatherFileOpen);
-}
-
-void WarningLibraryNameToBig()
-{
-	gatherer->WarningNameToBig(GatherType::GatherLibraryOpen);
+	gatherer->AddToBuff(LibraryHmoduleToInfoObject(libHmodule, funcCalled));
 }

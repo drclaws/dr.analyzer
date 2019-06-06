@@ -1,9 +1,11 @@
 #pragma once
 
-#include "TransferInfo.h"
+#include "GatherInfo.h"
 
-#define BUFF_MAX_LENGTH 500
-#define BUFF_MAX_SIZE 76000
+#include "flags.h"
+
+const INT32 BUFF_MAX_LENGTH = 500;
+const INT32 BUFF_MAX_SIZE = MAX_NAME_LENGTH * 2 + sizeof(gather_flag_t) * 2 + sizeof(INT32);
 
 
 class BuffObject
@@ -16,6 +18,7 @@ public:
 	~BuffObject();
 
 	bool AddInfo(GatherInfo* info);
+	bool IsEmpty();
 	void* ToMessage();
 
 private:
@@ -25,6 +28,6 @@ private:
 	int remainsLength = maxLength;
 	int remainsSize = maxSize;
 	
-	GatherInfo **buffer;
+	GatherInfo *buffer[BUFF_MAX_LENGTH];
 };
 

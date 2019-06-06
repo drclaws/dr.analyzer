@@ -27,9 +27,6 @@
     <ClInclude Include="DataTransport.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="TransferInfo.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="BuffObject.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
@@ -37,6 +34,12 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="Gatherer.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="GatherInfo.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="flags.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
@@ -53,9 +56,6 @@
     <ClCompile Include="DataTransport.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="TransferInfo.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="BuffObject.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -63,6 +63,9 @@
       <Filter>Исходные файлы</Filter>
     </ClCompile>
     <ClCompile Include="Gatherer.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="GatherInfo.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

@@ -13,8 +13,9 @@
 
 #include "hook_funcs.h"
 
-#include "TransferInfo.h"
+#include "GatherInfo.h"
 #include "BuffObject.h"
+#include "flags.h"
 
 
 DataTransport::DataTransport()
@@ -68,7 +69,7 @@ DataTransport::~DataTransport()
 		uniqueLock.lock();
 		this->isDisconnecting = true;
 		BuffObject* buff = new BuffObject();
-		buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated));
+		buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
 		uniqueLock.unlock();
 
 		this->SendData(buff);
@@ -115,7 +116,7 @@ bool DataTransport::ActivateSender()
 	}
 
 	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new GatherInfo(GatherType::GatherActivated));
+	buff->AddInfo(new GatherInfo(GatherType::GatherActivated, GatherFuncType::GatherConnection));
 	this->SendData(buff);
 
 	// Launch sender's thread
@@ -144,7 +145,7 @@ void DataTransport::SenderThreadFunc()
 		
 		if (this->buffQueue.size() == 0) {
 			BuffObject* buff = new BuffObject();
-			buff->AddInfo(new GatherInfo(GatherType::GatherStillUp));
+			buff->AddInfo(new GatherInfo(GatherType::GatherStillUp, GatherFuncType::GatherConnection));
 			this->buffQueue.push(buff);
 		}
 
@@ -175,7 +176,6 @@ void DataTransport::SenderThreadFunc()
 
 		uniqueLock.unlock();
 	}
-
 }
 
 void DataTransport::CloseSharedMemory() {

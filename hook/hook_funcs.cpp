@@ -1,15 +1,15 @@
 #include "stdafx.h"
 #include "hook_funcs.h"
 
-#include "hook.h"
-
 #include <detours.h>
+
+#include "hook.h"
+#include "flags.h"
 
 
 pCreateFile2  OrigCreateFile2 = NULL;
 pCreateFileA  OrigCreateFileA = NULL;
 pCreateFileW  OrigCreateFileW = NULL;
-pOpenFile	  OrigOpenFile = NULL;
 pOpenFileById OrigOpenFileById = NULL;
 
 HANDLE WINAPI NewCreateFile2(
@@ -27,7 +27,7 @@ HANDLE WINAPI NewCreateFile2(
 							pCreateExParams);
 	
 	if (fileHandle != NULL) {
-		GatherFileInfo((void*)fileHandle);
+		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFile2);
 	}
 
 	return fileHandle;
@@ -52,7 +52,7 @@ HANDLE WINAPI NewCreateFileA(
 							hTemplateFile);
 
 	if (fileHandle != NULL) {
-		GatherFileInfo((void*)fileHandle);
+		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileA);
 	}
 
 	return fileHandle;
@@ -77,24 +77,7 @@ HANDLE WINAPI NewCreateFileW(
 							hTemplateFile);
 
 	if (fileHandle != NULL) {
-		GatherFileInfo((void*)fileHandle);
-	}
-
-	return fileHandle;
-}
-
-HFILE WINAPI NewOpenFile(
-	LPCSTR     lpFileName,
-	LPOFSTRUCT lpReOpenBuff,
-	UINT       uStyle
-) {
-	HFILE fileHandle = OrigOpenFile(
-						   lpFileName,
-						   lpReOpenBuff,
-						   uStyle);
-
-	if (fileHandle != NULL) {
-		GatherFileInfo((void*)fileHandle);
+		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileW);
 	}
 
 	return fileHandle;
@@ -117,7 +100,7 @@ HANDLE WINAPI NewOpenFileById(
 							dwFlagsAndAttributes);
 
 	if (fileHandle != NULL) {
-		GatherFileInfo((void*)fileHandle);
+		GatherFileInfo(fileHandle, GatherFuncType::GatherOpenFileById);
 	}
 
 	return fileHandle;
@@ -133,25 +116,25 @@ pLoadLibraryExW OrigLoadLibraryExW = NULL;
 HMODULE WINAPI NewLoadLibraryA(
 	LPCSTR lpLibFileName
 ) {
-	HMODULE libHandle = OrigLoadLibraryA(lpLibFileName);
+	HMODULE libHmodule = OrigLoadLibraryA(lpLibFileName);
 
-	if (libHandle != NULL) {
-		GatherLibraryInfo((void*)libHandle);
+	if (libHmodule != NULL) {
+		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryA);
 	}
 
-	return libHandle;
+	return libHmodule;
 }
 
 HMODULE WINAPI NewLoadLibraryW(
 	LPCWSTR lpLibFileName
 ) {
-	HMODULE libHandle = OrigLoadLibraryW(lpLibFileName);
+	HMODULE libHmodule = OrigLoadLibraryW(lpLibFileName);
 
-	if (libHandle != NULL) {
-		GatherLibraryInfo((void*)libHandle);
+	if (libHmodule != NULL) {
+		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryW);
 	}
 
-	return libHandle;
+	return libHmodule;
 }
 
 HMODULE WINAPI NewLoadLibraryExA(
@@ -159,16 +142,16 @@ HMODULE WINAPI NewLoadLibraryExA(
 	HANDLE hFile,
 	DWORD  dwFlags
 ) {
-	HMODULE libHandle = OrigLoadLibraryExA(
+	HMODULE libHmodule = OrigLoadLibraryExA(
 							lpLibFileName,
 							hFile,
 							dwFlags);
 
-	if (libHandle != NULL) {
-		GatherLibraryInfo((void*)libHandle);
+	if (libHmodule != NULL) {
+		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryExA);
 	}
 
-	return libHandle;
+	return libHmodule;
 }
 
 HMODULE WINAPI NewLoadLibraryExW(
@@ -176,16 +159,16 @@ HMODULE WINAPI NewLoadLibraryExW(
 	HANDLE  hFile,
 	DWORD   dwFlags
 ) {
-	HMODULE libHandle = OrigLoadLibraryExW(
+	HMODULE libHmodule = OrigLoadLibraryExW(
 							lpLibFileName,
 							hFile,
 							dwFlags);
 
-	if (libHandle != NULL) {
-		GatherLibraryInfo((void*)libHandle);
+	if (libHmodule != NULL) {
+		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryExW);
 	}
 
-	return libHandle;
+	return libHmodule;
 }
 
 
@@ -198,9 +181,6 @@ BOOL GetOrigAddresses()
 		return FALSE;
 	}
 	if ((OrigCreateFileW = (pCreateFileW)DetourFindFunction("kernel32.dll", "CreateFileW")) == NULL) {
-		return FALSE;
-	}
-	if ((OrigOpenFile = (pOpenFile)DetourFindFunction("kernel32.dll", "OpenFile")) == NULL) {
 		return FALSE;
 	}
 	if ((OrigOpenFileById = (pOpenFileById)DetourFindFunction("kernel32.dll", "OpenFileById")) == NULL) {
