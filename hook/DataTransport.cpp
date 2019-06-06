@@ -120,7 +120,7 @@ bool DataTransport::ActivateSender()
 	this->SendData(buff);
 
 	// Launch sender's thread
-	this->senderThread = new std::thread(this->SenderThreadFunc);
+	this->senderThread = new std::thread(&DataTransport::SenderThreadFunc, this);
 
 	this->SenderActive = true;
 

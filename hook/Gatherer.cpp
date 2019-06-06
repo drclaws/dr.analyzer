@@ -37,7 +37,7 @@ Gatherer::Gatherer()
 
 	this->AddLoadedResToBuff();
 
-	this->queueConnectionThread = new std::thread(this->TransferThreadFunc);
+	this->queueConnectionThread = new std::thread(&Gatherer::TransferThreadFunc, this);
 
 	uniqueLock.unlock();
 }
@@ -164,7 +164,7 @@ void Gatherer::TransferThreadFunc() {
 		if (this->buffObj != NULL) {
 			this->dataTransport->SendData(this->buffObj);
 		}
-		this->buffObj == NULL;
+		this->buffObj = NULL;
 		this->threadNotified = false;
 		
 		uniqueLock.unlock();
