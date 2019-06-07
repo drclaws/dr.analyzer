@@ -33,14 +33,28 @@ GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name
 	this->name = name;
 }
 
-INT32 GatherInfo::GetSize() {
-	const INT32 typesSize = sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
+buff_size_t GatherInfo::GetSize() {
+	const buff_size_t typesSize = sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
 	if (this->nameLength > 0) {
 		return typesSize + this->nameLength * sizeof(WCHAR);
 	}
 	else {
 		return typesSize;
 	}
+}
+
+INT8* GatherInfo::ToMessageFormat()
+{
+	buff_size_t sizeBuff = this->GetSize();
+	INT8* buff = new INT8[sizeBuff];
+	std::memcpy(buff, &this->type, sizeof(this->type));
+	std::memcpy(buff + sizeof(this->type), &this->funcCalled, sizeof(this->funcCalled));
+	std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled), &this->nameLength, sizeof(this->nameLength));
+	if (this->nameLength > 0) {
+		std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength), &this->name, this->nameLength * sizeof(WCHAR));
+	}
+
+	return buff;
 }
 
 GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)

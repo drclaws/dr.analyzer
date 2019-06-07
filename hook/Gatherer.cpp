@@ -222,6 +222,8 @@ bool Gatherer::DetourFuncs()
 	if (DetourTransactionCommit() != NO_ERROR) {
 		return false;
 	}
+
+	return true;
 }
 
 bool Gatherer::ToOrigFuncs()
@@ -271,4 +273,6 @@ bool Gatherer::ToOrigFuncs()
 	if (DetourTransactionCommit() != NO_ERROR) {
 		return false;
 	}
+
+	return true;
 }

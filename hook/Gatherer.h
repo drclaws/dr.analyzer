@@ -36,7 +36,7 @@ private:
 	std::mutex buffFullCvMutex;
 	std::atomic_bool buffFull = false;
 
-	BuffObject* buffObj;
+	BuffObject* buffObj = NULL;
 
 	INT64 queueWaiting = 0;
 

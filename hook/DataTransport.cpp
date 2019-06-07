@@ -151,7 +151,8 @@ void DataTransport::SenderThreadFunc()
 
 		while (!this->buffQueue.empty()) {
 			BuffObject* buff = this->buffQueue.front();
-			
+			uniqueLock.unlock();
+
 			// TODO Convert to message
 			
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
@@ -164,7 +165,8 @@ void DataTransport::SenderThreadFunc()
 			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
 			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
 			// TODO check status'
-
+			
+			uniqueLock.lock();
 			this->buffQueue.pop();
 			delete buff;
 		}

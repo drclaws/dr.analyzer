@@ -2,6 +2,8 @@
 
 #include "flags.h"
 
+typedef INT32 buff_size_t;
+
 
 const int MAX_NAME_LENGTH = 38000;
 
@@ -20,8 +22,8 @@ public:
 	GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode=0);
 	GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name, INT32 nameLength);
 	
-	INT32 GetSize();
-	void* ToMessageFormat();
+	buff_size_t GetSize();
+	INT8* ToMessageFormat();
 
 private:
 	gather_flag_t type;
