@@ -2,6 +2,7 @@
 #include "GatherInfo.h"
 
 #include <cstring>
+#include <stdio.h>
 
 #include "flags.h"
 
@@ -47,6 +48,7 @@ INT8* GatherInfo::ToMessageFormat()
 {
 	buff_size_t sizeBuff = this->GetSize();
 	INT8* buff = new INT8[sizeBuff];
+	
 	std::memcpy(buff, &this->type, sizeof(this->type));
 	std::memcpy(buff + sizeof(this->type), &this->funcCalled, sizeof(this->funcCalled));
 	std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled), &this->nameLength, sizeof(this->nameLength));

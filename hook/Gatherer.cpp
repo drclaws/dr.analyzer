@@ -57,7 +57,7 @@ Gatherer::~Gatherer()
 
 	while (this->buffObj != NULL) {
 		uniqueLock.unlock();
-		std::this_thread::sleep_for(std::chrono::microseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		uniqueLock.lock();
 	}
 
@@ -66,7 +66,6 @@ Gatherer::~Gatherer()
 
 	delete this->dataTransport;
 	uniqueLock.unlock();
-
 }
 
 void Gatherer::AddToBuff(GatherInfo *info) {
@@ -113,7 +112,7 @@ void Gatherer::AddLoadedResToBuff() {
 	GatherInfo* tmpInfo;
 
 	if (EnumProcessModules(GetCurrentProcess(), hModules, sizeof(hModules), &modulesSizeNeeded)) {
-		for (int i = 0; i < (modulesAmount = modulesSizeNeeded / sizeof(HMODULE)); i++) {
+		for (unsigned int i = 0; i < (modulesAmount = modulesSizeNeeded / sizeof(HMODULE)); i++) {
 			tmpInfo = LibraryHmoduleToInfoObject(hModules[i], GatherFuncType::GatherFilesOnLoad);
 			if (!buffObj->AddInfo(tmpInfo)) {
 				this->dataTransport->SendData(buffObj);

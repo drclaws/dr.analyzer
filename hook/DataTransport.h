@@ -24,9 +24,10 @@ private:
 	bool isDisconnecting = false;
 
 	HANDLE transportMapping = NULL;
+	INT8* transportView = NULL;
 	HANDLE transportMutex = NULL;
 	HANDLE transportSemaphore = NULL;
-	
+
 	std::thread *senderThread = NULL;
 	std::mutex queueOperMutex;
 

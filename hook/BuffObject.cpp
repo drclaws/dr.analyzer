@@ -4,7 +4,9 @@
 #include <cstring>
 
 
-BuffObject::BuffObject() { }
+BuffObject::BuffObject() {
+	this->buffer = new GatherInfo * [BUFF_MAX_LENGTH];
+}
 
 
 BuffObject::~BuffObject()
@@ -12,6 +14,7 @@ BuffObject::~BuffObject()
 	for (int i = 0; i < this->length; i++) {
 		delete this->buffer[i];
 	}
+	delete[] this->buffer;
 }
 
 bool BuffObject::AddInfo(GatherInfo * info)
@@ -39,22 +42,27 @@ bool BuffObject::IsEmpty()
 
 INT8* BuffObject::ToMessage()
 {
-	INT8* message = new INT8[this->size + sizeof(buff_size_t)];
+	INT8* message = new INT8[this->MessageSize()];
 	
 	std::memcpy(message, &this->size, sizeof(this->size));
 	
-	buff_size_t currPos = sizeof(this->size);
+	INT8* currPos = message + sizeof(this->size);
 	buff_size_t currBuffSize;
 	INT8 *currBuff;
 
 	for (int i = 0; i < this->length; i++) {
 		currBuffSize = this->buffer[i]->GetSize();
 		currBuff = this->buffer[i]->ToMessageFormat();
-		std::memcpy(message + currPos, currBuff, currBuffSize);
+		std::memcpy(currPos, currBuff, currBuffSize);
 		
 		currPos += currBuffSize;
 		delete [] currBuff;
 	}
 
 	return message;
+}
+
+buff_size_t BuffObject::MessageSize()
+{
+	return this->size + sizeof(buff_size_t);
 }

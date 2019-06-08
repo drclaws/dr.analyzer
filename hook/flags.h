@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-typedef INT16 gather_flag_t;
+typedef UINT16 gather_flag_t;
 
 
 enum GatherFuncType {

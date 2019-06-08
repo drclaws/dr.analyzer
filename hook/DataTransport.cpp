@@ -23,9 +23,9 @@ DataTransport::DataTransport()
 	// Create connection
 	DWORD pid = GetCurrentProcessId();
 
-	std::wstring mapping_loc = std::wstring(L"Global\\") + L"dr_analyzer_buffer_" + std::to_wstring(pid);
-	std::wstring mutex_name = std::wstring(L"Global\\") + L"dr_analyzer_mutex_" + std::to_wstring(pid);
-	std::wstring semaphore_loc = std::wstring(L"Global\\") + L"dr_analyzer_semaphore_" + std::to_wstring(pid);
+	std::wstring mapping_loc = std::wstring(L"Global\\") + L"Global\\dr_analyzer_buffer_" + std::to_wstring(pid);
+	std::wstring mutex_name = std::wstring(L"Global\\") + L"Global\\dr_analyzer_mutex_" + std::to_wstring(pid);
+	std::wstring semaphore_loc = std::wstring(L"Global\\") + L"Global\\dr_analyzer_semaphore_" + std::to_wstring(pid);
 
 	this->transportMapping = OpenFileMappingW(
 		FILE_MAP_WRITE,
@@ -34,7 +34,20 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMapping == NULL) {
-		throw std::exception("Connection error");
+		throw std::exception("Connection error: Can't open mapping");
+	}
+
+	this->transportView = (INT8*)MapViewOfFile(
+		this->transportMapping,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		BUFF_MAX_SIZE + sizeof(buff_size_t)
+	);
+
+	if (this->transportView == NULL) {
+		this->CloseSharedMemory();
+		throw std::exception("Connection error: Can't assign view");
 	}
 
 	this->transportMutex = OpenMutexW(
@@ -45,7 +58,7 @@ DataTransport::DataTransport()
 
 	if (this->transportMutex == NULL) {
 		this->CloseSharedMemory();
-		throw std::exception("Connection error");
+		throw std::exception("Connection error: Can't open mutex");
 	}
 
 	this->transportSemaphore = OpenSemaphoreW(
@@ -56,7 +69,7 @@ DataTransport::DataTransport()
 
 	if (this->transportSemaphore == NULL) {
 		this->CloseSharedMemory();
-		throw std::exception("Connection error");
+		throw std::exception("Connection error: Can't open Semaphore");
 	}
 }
 
@@ -153,22 +166,22 @@ void DataTransport::SenderThreadFunc()
 			BuffObject* buff = this->buffQueue.front();
 			uniqueLock.unlock();
 
-			// TODO Convert to message
+			INT8* message = buff->ToMessage();
 			
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
-			// TODO check status
 
-			// TODO Write to memory
+			std::memcpy(this->transportView, message, buff->MessageSize());
 
 			ReleaseMutex(this->transportMutex);
-
 			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
+
+			// Wait for message read ends
 			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
-			// TODO check status'
 			
 			uniqueLock.lock();
 			this->buffQueue.pop();
 			delete buff;
+			delete[] message;
 		}
 
 		if (this->isDisconnecting) {
@@ -181,6 +194,10 @@ void DataTransport::SenderThreadFunc()
 }
 
 void DataTransport::CloseSharedMemory() {
+	if (this->transportView != NULL) {
+		UnmapViewOfFile(this->transportView);
+		this->transportView = NULL;
+	}
 	if (this->transportMapping != NULL) {
 		CloseHandle(this->transportMapping);
 		this->transportMapping = NULL;

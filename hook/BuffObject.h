@@ -20,6 +20,7 @@ public:
 	bool AddInfo(GatherInfo* info);
 	bool IsEmpty();
 	INT8* ToMessage();
+	buff_size_t MessageSize();
 
 private:
 	INT32 length = 0;
@@ -28,5 +29,5 @@ private:
 	INT32 remainsLength = BUFF_MAX_LENGTH;
 	INT32 remainsSize = BUFF_MAX_SIZE;
 	
-	GatherInfo* buffer[BUFF_MAX_LENGTH];
+	GatherInfo** buffer;
 };
