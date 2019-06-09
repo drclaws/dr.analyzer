@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
-namespace dr_analyzer
+namespace DrAnalyzer
 {
     static class Program
     {

@@ -9,8 +9,8 @@ const int MAX_NAME_LENGTH = 38000;
 
 
 enum GatherWarning {
-	GatherNameTooBig = (UINT32)-1,
-	GatherCannotGetValue = (UINT32)-2
+	GatherNameTooBig = (INT32)-1,
+	GatherCannotGetValue = (INT32)-2
 };
 
 
@@ -19,7 +19,8 @@ public:
 	GatherInfo();
 	~GatherInfo();
 
-	GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode=0);
+	GatherInfo(gather_flag_t type, gather_flag_t funcCalled);
+	GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode);
 	GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name, INT32 nameLength);
 	
 	buff_size_t GetSize();

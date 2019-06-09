@@ -8,12 +8,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-using dr_analyzer.flags;
 
-
-namespace dr_analyzer
+namespace DrAnalyzer.Analyzer
 {
-    public class Exporter
+    public static class ImportedFuncs
     {
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, int processId);
@@ -26,6 +24,9 @@ namespace dr_analyzer
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, IntPtr dwSize, AllocationType flAllocationType, MemoryProtection flProtect);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern Boolean VirtualFree(IntPtr lpAddress, IntPtr dwSize, AllocationType dwFreeType);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, UIntPtr nSize, out IntPtr lpNumberOfBytesWritten);

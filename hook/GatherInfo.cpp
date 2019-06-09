@@ -20,10 +20,17 @@ GatherInfo::~GatherInfo() {
 	}
 }
 
+GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled) {
+	this->type = type;
+	this->funcCalled = funcCalled;
+	this->nameLength = 0;
+	this->name = NULL;
+}
+
 GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode) {
 	this->type = type;
 	this->funcCalled = funcCalled;
-	this->nameLength = emergencyCode;
+	this->nameLength = emergencyCode | GatherType::GatherWarning;
 	this->name = NULL;
 }
 
@@ -35,12 +42,15 @@ GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name
 }
 
 buff_size_t GatherInfo::GetSize() {
-	const buff_size_t typesSize = sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
 	if (this->nameLength > 0) {
-		return typesSize + this->nameLength * sizeof(WCHAR);
+		return sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength) + this->nameLength * sizeof(WCHAR);
+	}
+	else if (this->nameLength < 0)
+	{
+		return sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
 	}
 	else {
-		return typesSize;
+		return sizeof(this->type) + sizeof(this->funcCalled);
 	}
 }
 
@@ -51,9 +61,11 @@ INT8* GatherInfo::ToMessageFormat()
 	
 	std::memcpy(buff, &this->type, sizeof(this->type));
 	std::memcpy(buff + sizeof(this->type), &this->funcCalled, sizeof(this->funcCalled));
-	std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled), &this->nameLength, sizeof(this->nameLength));
-	if (this->nameLength > 0) {
-		std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength), &this->name, this->nameLength * sizeof(WCHAR));
+	if (this->nameLength != 0) {
+		std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled), &this->nameLength, sizeof(this->nameLength));
+		if (this->nameLength > 0) {
+			std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength), &this->name, this->nameLength * sizeof(WCHAR));
+		}
 	}
 
 	return buff;

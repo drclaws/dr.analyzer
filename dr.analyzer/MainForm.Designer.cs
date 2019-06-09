@@ -1,4 +1,4 @@
-﻿namespace dr_analyzer
+﻿namespace DrAnalyzer
 {
     partial class MainForm
     {
@@ -36,6 +36,7 @@
             this.exeBrowseButton = new System.Windows.Forms.Button();
             this.pidTextBox = new System.Windows.Forms.TextBox();
             this.startButton = new System.Windows.Forms.Button();
+            this.textBox1 = new System.Windows.Forms.TextBox();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -69,7 +70,7 @@
             this.fileToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(737, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(736, 24);
             this.menuStrip1.TabIndex = 2;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -85,13 +86,13 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.exePathTextBox.Location = new System.Drawing.Point(121, 31);
             this.exePathTextBox.Name = "exePathTextBox";
-            this.exePathTextBox.Size = new System.Drawing.Size(524, 20);
+            this.exePathTextBox.Size = new System.Drawing.Size(523, 20);
             this.exePathTextBox.TabIndex = 3;
             // 
             // exeBrowseButton
             // 
             this.exeBrowseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.exeBrowseButton.Location = new System.Drawing.Point(651, 29);
+            this.exeBrowseButton.Location = new System.Drawing.Point(650, 29);
             this.exeBrowseButton.Name = "exeBrowseButton";
             this.exeBrowseButton.Size = new System.Drawing.Size(75, 23);
             this.exeBrowseButton.TabIndex = 4;
@@ -109,18 +110,32 @@
             // startButton
             // 
             this.startButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.startButton.Location = new System.Drawing.Point(651, 102);
+            this.startButton.Location = new System.Drawing.Point(650, 102);
             this.startButton.Name = "startButton";
             this.startButton.Size = new System.Drawing.Size(75, 23);
             this.startButton.TabIndex = 6;
             this.startButton.Text = "Start";
             this.startButton.UseVisualStyleBackColor = true;
             // 
+            // textBox1
+            // 
+            this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBox1.BackColor = System.Drawing.SystemColors.Window;
+            this.textBox1.Location = new System.Drawing.Point(12, 131);
+            this.textBox1.Multiline = true;
+            this.textBox1.Name = "textBox1";
+            this.textBox1.ReadOnly = true;
+            this.textBox1.Size = new System.Drawing.Size(712, 292);
+            this.textBox1.TabIndex = 7;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(737, 384);
+            this.ClientSize = new System.Drawing.Size(736, 435);
+            this.Controls.Add(this.textBox1);
             this.Controls.Add(this.startButton);
             this.Controls.Add(this.pidTextBox);
             this.Controls.Add(this.exeBrowseButton);
@@ -129,7 +144,7 @@
             this.Controls.Add(this.exeRadioButton);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
-            this.MinimumSize = new System.Drawing.Size(400, 227);
+            this.MinimumSize = new System.Drawing.Size(400, 333);
             this.Name = "MainForm";
             this.Text = "Form1";
             this.menuStrip1.ResumeLayout(false);
@@ -149,6 +164,7 @@
         private System.Windows.Forms.Button exeBrowseButton;
         private System.Windows.Forms.TextBox pidTextBox;
         private System.Windows.Forms.Button startButton;
+        private System.Windows.Forms.TextBox textBox1;
     }
 }
 
