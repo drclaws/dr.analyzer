@@ -9,6 +9,7 @@ namespace DrAnalyzer.Analyzer
 {
     public static class Injector
     {
+        const uint INFINITE = 0xFFFFFFFF;
         private static String dllPath = "";
         private static bool dllPathSet = false;
         private static String DllPath
@@ -69,6 +70,13 @@ namespace DrAnalyzer.Analyzer
             IntPtr threadIdOut;
             IntPtr threadId = ImportedFuncs.CreateRemoteThread(openedProcess, IntPtr.Zero, 0, loadLibratyAddr, argLoadLibrary, 0, out threadIdOut);
 
+            if (threadId == null)
+            {
+                ImportedFuncs.VirtualFree(openedProcess, argLoadLibrary, AllocationType.Release | AllocationType.Commit);
+                ImportedFuncs.CloseHandle(openedProcess);
+                throw new Exception("Injection: Cannot create remote thread");
+            }
+
             ImportedFuncs.CloseHandle(threadId);
 
             Injector.IsSet = true;
@@ -76,7 +84,7 @@ namespace DrAnalyzer.Analyzer
 
         public static void InjectByPath(String exePath)
         {
-
+            throw new NotImplementedException();
         }
 
         public static void Deinject()
@@ -85,6 +93,8 @@ namespace DrAnalyzer.Analyzer
             {
                 throw new Exception("It has not been injected");
             }
+
+            throw new NotImplementedException();
         }
 
     }

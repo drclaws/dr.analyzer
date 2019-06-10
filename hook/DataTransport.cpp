@@ -17,10 +17,13 @@
 #include "BuffObject.h"
 #include "flags.h"
 
+#include <iostream>
+
 
 DataTransport::DataTransport()
 {
 	// Create connection
+	/*
 	DWORD pid = GetCurrentProcessId();
 
 	std::wstring mapping_loc = std::wstring(L"Global\\") + L"Global\\dr_analyzer_buffer_" + std::to_wstring(pid);
@@ -71,32 +74,31 @@ DataTransport::DataTransport()
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
+	*/
 }
 
 
 DataTransport::~DataTransport()
 {
 	if (this->SenderActive) {
-		std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
 
-		uniqueLock.lock();
+		this->queueOperMutex.lock();
 		this->isDisconnecting = true;
 		BuffObject* buff = new BuffObject();
 		buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
-		uniqueLock.unlock();
+		this->queueOperMutex.unlock();
 
 		this->SendData(buff);
 
-		uniqueLock.lock();
+		this->queueOperMutex.lock();
 		while (this->buffQueue.size() > 0) {
-			uniqueLock.unlock();
+			this->queueOperMutex.unlock();
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			uniqueLock.lock();
+			this->queueOperMutex.lock();
 		}
-		uniqueLock.unlock();
+		this->queueOperMutex.unlock();
 
-		this->senderThread->join();
-		delete this->senderThread;
+		this->senderThread.join();
 	}
 
 	this->CloseSharedMemory();
@@ -108,18 +110,16 @@ void DataTransport::SendData(BuffObject* info)
 		return;
 	}
 
-	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
-
-	uniqueLock.lock();
+	this->queueOperMutex.lock();
 	if (this->isDisconnecting) {
-		uniqueLock.unlock();
+		this->queueOperMutex.unlock();
 		return;
 	}
 
 	this->buffQueue.push(info);
 	this->queueOperEndedCV.notify_one();
 
-	uniqueLock.unlock();
+	this->queueOperMutex.unlock();
 }
 
 bool DataTransport::ActivateSender()
@@ -133,9 +133,13 @@ bool DataTransport::ActivateSender()
 	this->SendData(buff);
 
 	// Launch sender's thread
-	this->senderThread = new std::thread(&DataTransport::SenderThreadFunc, this);
-
 	this->SenderActive = true;
+	//std::cout << "queue thread start 2" << std::endl;
+
+	this->senderThread = std::thread(&DataTransport::SenderThreadFunc, this);
+	this->senderThread.detach();
+	//std::cout << "queue thread started" << std::endl;
+	
 
 	return true;
 }
@@ -143,18 +147,18 @@ bool DataTransport::ActivateSender()
 
 void DataTransport::SenderThreadFunc()
 {
+	//std::cout << "queue thread launch" << std::endl;
 	if (!this->SenderActive) {
 		return;
 	}
 
-	std::unique_lock<std::mutex> uniqueLock(this->queueOperMutex);
 	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
 
 	DWORD waitRes;
 
 	while (true) {
 		this->queueOperEndedCV.wait_for(cvLock, std::chrono::seconds(5));
-		uniqueLock.lock();
+		this->queueOperMutex.lock();
 		
 		if (this->buffQueue.size() == 0) {
 			BuffObject* buff = new BuffObject();
@@ -164,10 +168,13 @@ void DataTransport::SenderThreadFunc()
 
 		while (!this->buffQueue.empty()) {
 			BuffObject* buff = this->buffQueue.front();
-			uniqueLock.unlock();
 
-			INT8* message = buff->ToMessage();
+			this->queueOperMutex.unlock();
 			
+			buff->Print();
+
+			/*
+			INT8* message = buff->ToMessage();
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
 
 			std::memcpy(this->transportView, message, buff->MessageSize());
@@ -177,19 +184,19 @@ void DataTransport::SenderThreadFunc()
 
 			// Wait for message read ends
 			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
-			
-			uniqueLock.lock();
+			*/
+			this->queueOperMutex.lock();
 			this->buffQueue.pop();
 			delete buff;
-			delete[] message;
+			//delete[] message;
 		}
 
 		if (this->isDisconnecting) {
-			uniqueLock.unlock();
+			this->queueOperMutex.unlock();
 			break;
 		}
 
-		uniqueLock.unlock();
+		this->queueOperMutex.unlock();
 	}
 }
 

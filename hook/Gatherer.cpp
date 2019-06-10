@@ -17,63 +17,59 @@
 #include "hook_funcs.h"
 #include "flags.h"
 
+#include <iostream>
+
 
 Gatherer* gatherer = NULL;
-
 
 Gatherer::Gatherer()
 {
 	this->dataTransport = new DataTransport();
+}
 
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-	uniqueLock.lock();
+Gatherer::~Gatherer()
+{
+	this->buffMutex.lock();
+	this->isDisconnecting = true;
+	this->buffMutex.unlock();
 
-	if (!this->DetourFuncs()) {
-		delete this->dataTransport;
-		throw std::exception("Detour error");
+	this->ToOrigFuncs();
+
+	this->addCv.notify_one();
+	this->buffMutex.lock();
+
+	while (this->buffObj != NULL) {
+		this->buffMutex.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		this->buffMutex.lock();
 	}
+
+	this->queueConnectionThread.join();
+
+	delete this->dataTransport;
+	this->buffMutex.unlock();
+}
+
+void Gatherer::Activate() {
+	this->buffMutex.lock();
 
 	this->dataTransport->ActivateSender();
 
 	this->AddLoadedResToBuff();
 
-	this->queueConnectionThread = new std::thread(&Gatherer::TransferThreadFunc, this);
+	this->queueConnectionThread = std::thread(&Gatherer::TransferThreadFunc, this);
 
-	uniqueLock.unlock();
-}
+	this->buffMutex.unlock();
 
-Gatherer::~Gatherer()
-{
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-
-	uniqueLock.lock();
-	this->isDisconnecting = true;
-	uniqueLock.unlock();
-
-	this->ToOrigFuncs();
-
-	this->addCv.notify_one();
-	uniqueLock.lock();
-
-	while (this->buffObj != NULL) {
-		uniqueLock.unlock();
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		uniqueLock.lock();
+	if (!this->DetourFuncs()) {
+		throw std::exception("Detour error");
 	}
-
-	this->queueConnectionThread->join();
-	delete this->queueConnectionThread;
-
-	delete this->dataTransport;
-	uniqueLock.unlock();
 }
 
 void Gatherer::AddToBuff(GatherInfo *info) {
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
-	uniqueLock.lock();
-
+	this->buffMutex.lock();
 	if (this->isDisconnecting) {
-		uniqueLock.unlock();
+		this->buffMutex.unlock();
 		delete info;
 		return;
 	}
@@ -86,9 +82,9 @@ void Gatherer::AddToBuff(GatherInfo *info) {
 		this->buffFull = true;
 		this->buffFullCv.notify_one();
 
-		uniqueLock.unlock();
+		this->buffMutex.unlock();
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		uniqueLock.lock();
+		this->buffMutex.lock();
 		if (this->buffObj == NULL) {
 			this->buffObj = new BuffObject();
 		}
@@ -98,7 +94,7 @@ void Gatherer::AddToBuff(GatherInfo *info) {
 		this->addCv.notify_one();
 	}
 
-	uniqueLock.unlock();
+	this->buffMutex.unlock();
 }
 
 
@@ -122,12 +118,6 @@ void Gatherer::AddLoadedResToBuff() {
 		}
 	}
 
-#ifdef DR_HOOK_TEST
-	else {
-		std::cout << "Cannot acquire libs on load" << std::endl;
-	}
-#endif
-
 	if (buffObj->IsEmpty()) {
 		delete buffObj;
 	}
@@ -137,7 +127,6 @@ void Gatherer::AddLoadedResToBuff() {
 }
 
 void Gatherer::TransferThreadFunc() {
-	std::unique_lock<std::mutex> uniqueLock(this->buffMutex);
 	std::unique_lock<std::mutex> addCVLock(this->addCvMutex);
 	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);
 
@@ -158,7 +147,7 @@ void Gatherer::TransferThreadFunc() {
 			this->buffFullCv.wait_for(buffFullCVLock, std::chrono::milliseconds(1000) - duration);
 		}
 
-		uniqueLock.lock();
+		this->buffMutex.lock();
 
 		if (this->buffObj != NULL) {
 			this->dataTransport->SendData(this->buffObj);
@@ -166,7 +155,7 @@ void Gatherer::TransferThreadFunc() {
 		this->buffObj = NULL;
 		this->threadNotified = false;
 		
-		uniqueLock.unlock();
+		this->buffMutex.unlock();
 
 		if (this->isDisconnecting) {
 			break;

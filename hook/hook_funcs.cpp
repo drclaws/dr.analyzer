@@ -6,6 +6,8 @@
 #include "hook.h"
 #include "flags.h"
 
+#include <iostream>
+#include <stdio.h>
 
 pCreateFile2  OrigCreateFile2 = NULL;
 pCreateFileA  OrigCreateFileA = NULL;
@@ -25,7 +27,7 @@ HANDLE WINAPI NewCreateFile2(
 							dwShareMode,
 							dwCreationDisposition,
 							pCreateExParams);
-	
+
 	if (fileHandle != NULL) {
 		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFile2);
 	}

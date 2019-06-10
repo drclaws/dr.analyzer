@@ -3,11 +3,9 @@
 
 #include "flags.h"
 
-// Prepares connection and info gathering
-int StartGathering();
+void GatherActivate();
 
-// Stops info gathering and closes connection
-int StopGathering();
+void GatherDeactivate();
 
 void GatherFileInfo(HANDLE fileName, gather_flag_t funcCalled);
 

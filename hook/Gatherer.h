@@ -18,6 +18,7 @@ public:
 	Gatherer();
 	~Gatherer();
 
+	void Activate();
 	void AddToBuff(GatherInfo* info);
 
 private:
@@ -26,7 +27,7 @@ private:
 
 	DataTransport* dataTransport = NULL;
 
-	std::thread *queueConnectionThread = NULL;
+	std::thread queueConnectionThread;
 	std::mutex buffMutex;
 
 	std::condition_variable addCv;

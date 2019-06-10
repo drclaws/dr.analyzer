@@ -7,27 +7,16 @@
 #include "GatherInfo.h"
 #include "flags.h"
 
+#include <iostream>
 
-int StartGathering()
-{
-	try {
-		gatherer = new Gatherer();
-	}
-	catch(std::exception) {
-		return FALSE;
-	}
-	return TRUE;
+
+void GatherActivate() {
+	gatherer = new Gatherer();
+	gatherer->Activate();
 }
 
-int StopGathering()
-{
-	try {
-		delete gatherer;
-	}
-	catch (std::exception) {
-		return FALSE;
-	}
-	return TRUE;
+void GatherDeactivate() {
+	delete gatherer;
 }
 
 void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)

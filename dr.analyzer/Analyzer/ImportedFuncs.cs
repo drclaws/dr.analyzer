@@ -35,6 +35,12 @@ namespace DrAnalyzer.Analyzer
         public static extern IntPtr CreateRemoteThread(IntPtr hProcess, IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, out IntPtr lpThreadId);
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern Boolean GetExitCodeThread(IntPtr hThread, IntPtr lpExitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern Int32 CloseHandle(IntPtr hObject);
     }
 }

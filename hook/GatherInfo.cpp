@@ -73,13 +73,13 @@ INT8* GatherInfo::ToMessageFormat()
 
 GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 {
-	const DWORD size = 256;
-	WCHAR filePath[size];
+	const DWORD size = 255;
+	WCHAR filePath[size + 1];
 
 	DWORD sizeGet;
 	LPWSTR filePathRes;
 
-	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, size - 1, FILE_NAME_NORMALIZED);
+	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, size, FILE_NAME_NORMALIZED);
 
 	if (sizeGet == 0) {
 		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherCannotGetValue);
@@ -88,12 +88,12 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherNameTooBig);
 	}
 
-	filePathRes = new WCHAR[sizeGet];
-
 	if (sizeGet > size) {
-		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, sizeGet - 1, FILE_NAME_NORMALIZED);
+		filePathRes = new WCHAR[sizeGet];
+		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet - 1, FILE_NAME_NORMALIZED);
 	}
 	else {
+		filePathRes = new WCHAR[sizeGet + 1];
 		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
 	}
 
@@ -109,6 +109,10 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
 	LPWSTR filePathRes;
 
 	sizeGet = GetModuleFileNameW(libHmodule, filePath, size);
+
+	if (sizeGet != size) {
+		sizeGet++;
+	}
 
 	filePathRes = new WCHAR[sizeGet];
 	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);

@@ -28,7 +28,7 @@ private:
 	HANDLE transportMutex = NULL;
 	HANDLE transportSemaphore = NULL;
 
-	std::thread *senderThread = NULL;
+	std::thread senderThread;
 	std::mutex queueOperMutex;
 
 	std::mutex queueOperEndedMutex;
