@@ -124,4 +124,15 @@ HMODULE WINAPI NewLoadLibraryExW(
 );
 
 
+
+typedef void(WINAPI *pExitProcess) (
+	UINT ExitProcess
+	);
+
+extern pExitProcess OrigExitProcess;
+
+void WINAPI NewExitProcess(UINT uExitCode);
+
+
+
 BOOL GetOrigAddresses();

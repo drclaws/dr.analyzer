@@ -17,10 +17,8 @@ public:
 	~DataTransport();
 
 	void SendData(BuffObject *info);
-	bool ActivateSender();
 
 private:
-	std::atomic_bool SenderActive = false;
 	bool isDisconnecting = false;
 
 	HANDLE transportMapping = NULL;

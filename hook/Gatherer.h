@@ -15,19 +15,21 @@
 class Gatherer
 {
 public:
+	bool isDisconnecting = false;
+
 	Gatherer();
 	~Gatherer();
 
-	void Activate();
+	void TransferThreadFunc();
 	void AddToBuff(GatherInfo* info);
 
 private:
-	bool isDisconnecting = false;
 	std::atomic_bool threadNotified = false;
+
+	std::atomic_uint addUsingCount = 0;
 
 	DataTransport* dataTransport = NULL;
 
-	std::thread queueConnectionThread;
 	std::mutex buffMutex;
 
 	std::condition_variable addCv;
@@ -35,18 +37,13 @@ private:
 
 	std::condition_variable buffFullCv;
 	std::mutex buffFullCvMutex;
-	std::atomic_bool buffFull = false;
 
 	BuffObject* buffObj = NULL;
 
-	INT64 queueWaiting = 0;
-
 	void AddLoadedResToBuff();
-	void TransferThreadFunc();
 
-	bool DetourFuncs();
-	bool ToOrigFuncs();
-
+	void DetourFuncs();
+	void UndetourFuncs();
 };
 
 

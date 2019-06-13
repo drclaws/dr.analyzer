@@ -75,41 +75,37 @@ DataTransport::DataTransport()
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
 	*/
+
+	BuffObject* buff = new BuffObject();
+	buff->AddInfo(new GatherInfo(GatherType::GatherActivated, GatherFuncType::GatherConnection));
+	this->SendData(buff);
+
+	// Launch sender's thread
+
+	this->senderThread = std::thread(&DataTransport::SenderThreadFunc, this);
 }
 
 
 DataTransport::~DataTransport()
 {
-	if (this->SenderActive) {
+	this->queueOperMutex.lock();
 
-		this->queueOperMutex.lock();
-		this->isDisconnecting = true;
-		BuffObject* buff = new BuffObject();
-		buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
-		this->queueOperMutex.unlock();
+	this->isDisconnecting = true;
 
-		this->SendData(buff);
+	BuffObject* buff = new BuffObject();
+	buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
+	this->buffQueue.push(buff);
+	this->queueOperEndedCV.notify_one();
 
-		this->queueOperMutex.lock();
-		while (this->buffQueue.size() > 0) {
-			this->queueOperMutex.unlock();
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			this->queueOperMutex.lock();
-		}
-		this->queueOperMutex.unlock();
-
-		this->senderThread.join();
-	}
+	this->queueOperMutex.unlock();
+	
+	this->senderThread.join();
 
 	this->CloseSharedMemory();
 }
 
 void DataTransport::SendData(BuffObject* info)
 {
-	if (!this->SenderActive) {
-		return;
-	}
-
 	this->queueOperMutex.lock();
 	if (this->isDisconnecting) {
 		this->queueOperMutex.unlock();
@@ -122,35 +118,10 @@ void DataTransport::SendData(BuffObject* info)
 	this->queueOperMutex.unlock();
 }
 
-bool DataTransport::ActivateSender()
-{
-	if (this->SenderActive) {
-		return false;
-	}
-
-	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new GatherInfo(GatherType::GatherActivated, GatherFuncType::GatherConnection));
-	this->SendData(buff);
-
-	// Launch sender's thread
-	this->SenderActive = true;
-	//std::cout << "queue thread start 2" << std::endl;
-
-	this->senderThread = std::thread(&DataTransport::SenderThreadFunc, this);
-	this->senderThread.detach();
-	//std::cout << "queue thread started" << std::endl;
-	
-
-	return true;
-}
-
 
 void DataTransport::SenderThreadFunc()
 {
 	//std::cout << "queue thread launch" << std::endl;
-	if (!this->SenderActive) {
-		return;
-	}
 
 	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
 

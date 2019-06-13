@@ -5,6 +5,7 @@
 
 #include "hook.h"
 #include "flags.h"
+#include "Gatherer.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -174,6 +175,19 @@ HMODULE WINAPI NewLoadLibraryExW(
 }
 
 
+
+pExitProcess OrigExitProcess = NULL;
+
+void WINAPI NewExitProcess(UINT uExitCode) {
+	std::cout << "exiting" << std::endl;
+	gatherer->isDisconnecting = true;
+	WaitForSingleObject(senderThread, INFINITE);
+	senderThread = NULL;
+	OrigExitProcess(uExitCode);
+}
+
+
+
 BOOL GetOrigAddresses()
 {
 	if ((OrigCreateFile2 = (pCreateFile2)DetourFindFunction("kernel32.dll", "CreateFile2")) == NULL) {
@@ -199,6 +213,10 @@ BOOL GetOrigAddresses()
 		return FALSE;
 	}
 	if ((OrigLoadLibraryExW = (pLoadLibraryExW)DetourFindFunction("kernel32.dll", "LoadLibraryExW")) == NULL) {
+		return FALSE;
+	}
+	
+	if ((OrigExitProcess = (pExitProcess)DetourFindFunction("kernel32.dll", "ExitProcess")) == NULL) {
 		return FALSE;
 	}
 

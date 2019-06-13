@@ -9,15 +9,7 @@
 
 #include <iostream>
 
-
-void GatherActivate() {
-	gatherer = new Gatherer();
-	gatherer->Activate();
-}
-
-void GatherDeactivate() {
-	delete gatherer;
-}
+HANDLE senderThread = NULL;
 
 void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {

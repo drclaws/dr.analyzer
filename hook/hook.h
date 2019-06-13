@@ -3,9 +3,8 @@
 
 #include "flags.h"
 
-void GatherActivate();
 
-void GatherDeactivate();
+extern HANDLE senderThread;
 
 void GatherFileInfo(HANDLE fileName, gather_flag_t funcCalled);
 
