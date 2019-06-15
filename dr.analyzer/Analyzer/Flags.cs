@@ -121,7 +121,6 @@ namespace DrAnalyzer.Analyzer
 
         GatherStatus =          0x1000,
         GatherResource =        0x2000,
-        GatherWarning =         0x4000,
 
         [Description("Gathering has been activated")]
         GatherActivated =       GatherStatus | 0x0001,

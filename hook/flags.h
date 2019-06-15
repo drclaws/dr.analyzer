@@ -32,7 +32,6 @@ enum GatherType {
 
 	GatherStatus =		(gather_flag_t)0x1000,
 	GatherResource =	(gather_flag_t)0x2000,
-	GatherWarning =		(gather_flag_t)0x4000,
 
 
 	GatherActivated =	GatherStatus | (gather_flag_t)0x0001,

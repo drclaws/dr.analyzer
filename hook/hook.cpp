@@ -9,7 +9,10 @@
 
 #include <iostream>
 
-HANDLE senderThread = NULL;
+
+HANDLE gatherThread = NULL;
+HANDLE waiterThread = NULL;
+
 
 void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {

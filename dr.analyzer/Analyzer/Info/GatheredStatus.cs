@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DrAnalyzer.Analyzer.Info
 {
-    class GatheredStatus : GatheredInfo
+    class GatheredStatus : IGatheredInfo
     {
         public GatherType Type { get; private set; }
         public GatherFuncType FuncType { get; private set; }

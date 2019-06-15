@@ -66,3 +66,10 @@ buff_size_t BuffObject::MessageSize()
 {
 	return this->size + sizeof(buff_size_t);
 }
+
+void BuffObject::Print()
+{
+	for (int i = 0; i < this->length; i++) {
+		this->buffer[i]->Print();
+	}
+}

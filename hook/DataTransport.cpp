@@ -23,12 +23,11 @@
 DataTransport::DataTransport()
 {
 	// Create connection
-	/*
 	DWORD pid = GetCurrentProcessId();
 
-	std::wstring mapping_loc = std::wstring(L"Global\\") + L"Global\\dr_analyzer_buffer_" + std::to_wstring(pid);
-	std::wstring mutex_name = std::wstring(L"Global\\") + L"Global\\dr_analyzer_mutex_" + std::to_wstring(pid);
-	std::wstring semaphore_loc = std::wstring(L"Global\\") + L"Global\\dr_analyzer_semaphore_" + std::to_wstring(pid);
+	std::wstring mapping_loc = L"Global\\dr_analyzer_buffer_" + std::to_wstring(pid);
+	std::wstring mutex_name = L"Global\\dr_analyzer_mutex_" + std::to_wstring(pid);
+	std::wstring semaphore_loc = L"Global\\dr_analyzer_semaphore_" + std::to_wstring(pid);
 
 	this->transportMapping = OpenFileMappingW(
 		FILE_MAP_WRITE,
@@ -74,7 +73,6 @@ DataTransport::DataTransport()
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
-	*/
 
 	BuffObject* buff = new BuffObject();
 	buff->AddInfo(new GatherInfo(GatherType::GatherActivated, GatherFuncType::GatherConnection));
@@ -121,8 +119,6 @@ void DataTransport::SendData(BuffObject* info)
 
 void DataTransport::SenderThreadFunc()
 {
-	//std::cout << "queue thread launch" << std::endl;
-
 	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
 
 	DWORD waitRes;
@@ -142,9 +138,9 @@ void DataTransport::SenderThreadFunc()
 
 			this->queueOperMutex.unlock();
 			
-			buff->Print();
+			//buff->Print();
 
-			/*
+			
 			INT8* message = buff->ToMessage();
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
 
@@ -155,7 +151,7 @@ void DataTransport::SenderThreadFunc()
 
 			// Wait for message read ends
 			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
-			*/
+			
 			this->queueOperMutex.lock();
 			this->buffQueue.pop();
 			delete buff;

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DrAnalyzer.Analyzer.Info
 {
-    public class GatheredWarning : GatheredInfo
+    public class GatheredWarning : IGatheredInfo
     {
         public enum WarningType : Int32
         {

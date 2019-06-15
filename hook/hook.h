@@ -4,7 +4,8 @@
 #include "flags.h"
 
 
-extern HANDLE senderThread;
+extern HANDLE gatherThread;
+extern HANDLE waiterThread;
 
 void GatherFileInfo(HANDLE fileName, gather_flag_t funcCalled);
 

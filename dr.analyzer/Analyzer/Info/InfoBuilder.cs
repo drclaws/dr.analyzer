@@ -18,9 +18,9 @@ namespace DrAnalyzer.Analyzer.Info
             
         }
 
-        public List<GatheredInfo> ToInfoType(byte[] message)
+        public List<IGatheredInfo> ToInfoType(byte[] message)
         {
-            List<GatheredInfo> infoList = new List<GatheredInfo>();
+            List<IGatheredInfo> infoList = new List<IGatheredInfo>();
 
             int messageSize = Convert.ToInt32(message.Length);
             int currPos = 0;
@@ -33,7 +33,7 @@ namespace DrAnalyzer.Analyzer.Info
 
             while (currPos < messageSize)
             {
-                GatheredInfo info = null;
+                IGatheredInfo info = null;
                 Array.Copy(message, currPos, buffType, 0, typeSize);
                 currPos += typeSize;
                 Array.Copy(message, currPos, buffFunc, 0, funcTypeSize);

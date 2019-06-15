@@ -30,7 +30,7 @@ GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled) {
 GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode) {
 	this->type = type;
 	this->funcCalled = funcCalled;
-	this->nameLength = emergencyCode | GatherType::GatherWarning;
+	this->nameLength = emergencyCode;
 	this->name = NULL;
 }
 
@@ -69,6 +69,16 @@ INT8* GatherInfo::ToMessageFormat()
 	}
 
 	return buff;
+}
+
+void GatherInfo::Print()
+{
+	if (this->name) {
+		std::wcout << this->type << " (" << this->funcCalled << "): " << this->name << std::endl;
+	}
+	else {
+		std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << std::endl;
+	}
 }
 
 GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)

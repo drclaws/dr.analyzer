@@ -22,11 +22,7 @@ public:
 	INT8* ToMessage();
 	buff_size_t MessageSize();
 
-	void Print() {
-		for (int i = 0; i < this->length; i++) {
-			this->buffer[i]->Print();
-		}
-	}
+	void Print();
 
 private:
 	INT32 length = 0;

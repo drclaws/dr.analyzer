@@ -179,10 +179,18 @@ HMODULE WINAPI NewLoadLibraryExW(
 pExitProcess OrigExitProcess = NULL;
 
 void WINAPI NewExitProcess(UINT uExitCode) {
-	std::cout << "exiting" << std::endl;
+	if (waiterThread != NULL) {
+		TerminateThread(waiterThread, 0);
+		waiterThread = NULL;
+	}
+
 	gatherer->isDisconnecting = true;
-	WaitForSingleObject(senderThread, INFINITE);
-	senderThread = NULL;
+
+	if (gatherThread != NULL) {
+		WaitForSingleObject(gatherThread, INFINITE);
+		gatherThread = NULL;
+	}
+
 	OrigExitProcess(uExitCode);
 }
 

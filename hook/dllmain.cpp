@@ -1,24 +1,43 @@
 ﻿// dllmain.cpp : Определяет точку входа для приложения DLL.
 #include "stdafx.h"
 
-//#include "hook.h"
-#include "hook_funcs.h"
-
 #include <detours.h>
-#include <iostream>
+#include <string>
 
-#include <atomic>
+#include "hook_funcs.h"
 
 #include "Gatherer.h"
 #include "hook.h"
 
+HMODULE libHModule;
 
-HMODULE libModule;
-int curr = 0;
-
-DWORD WINAPI ActivateThreadFunc(LPVOID) {
+DWORD WINAPI GatherThreadFunc(LPVOID) {
 	gatherer->TransferThreadFunc();
 	ExitThread(0);
+}
+
+DWORD WINAPI WaiterForCloseFunc(LPVOID) {
+	if ((gatherThread = CreateThread(NULL, 0, &GatherThreadFunc, NULL, 0, NULL)) == NULL) {
+		FreeLibraryAndExitThread(libHModule, 1);
+	}
+
+	std::wstring waiterSemaphoreName = L"Global\\dr_analyzer_waiter_semaphore_" + std::to_wstring(GetCurrentProcessId());
+	HANDLE waiterSemaphore = OpenSemaphoreW(
+		SEMAPHORE_ALL_ACCESS,
+		FALSE,
+		waiterSemaphoreName.c_str()
+	);
+
+	WaitForSingleObject(waiterSemaphore, INFINITE);
+
+	gatherer->isDisconnecting = true;
+	if (gatherThread != NULL) {
+		WaitForSingleObject(gatherThread, INFINITE);
+		gatherThread = NULL;
+	}
+	CloseHandle(waiterSemaphore);
+	waiterThread = NULL;
+	FreeLibraryAndExitThread(libHModule, 0);
 }
 
 
@@ -31,44 +50,26 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		return TRUE;
 	}
 
-	switch (ul_reason_for_call)
-	{
-	case DLL_PROCESS_ATTACH:
-		libModule = hModule;
+	if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+		libHModule = hModule;
 		if (!GetOrigAddresses()) {
-			std::cout << "addresses not gotten" << std::endl;
 			return FALSE;
 		}
 		gatherer = new Gatherer();
-		if ((senderThread = CreateThread(NULL, 0, &ActivateThreadFunc, NULL, 0, NULL)) == NULL) {
+		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
 			return FALSE;
 		}
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourAttach(&(PVOID&)OrigExitProcess, NewExitProcess);
 		DetourTransactionCommit();
-		std::cout << "process attach" << std::endl;
-		break;
-
-	case DLL_THREAD_ATTACH:
-		std::cout << "thread attach" << ++curr << std::endl;
-		break;
-
-	case DLL_THREAD_DETACH:
-		std::cout << "thread detach" << --curr << std::endl;
-		break;
-
-	case DLL_PROCESS_DETACH:
-		std::cout << "process detach" << std::endl;
+	}
+	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		delete gatherer;
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
 		DetourTransactionCommit();
-		break;
-
-	default:
-		break;
 	}
 
     return TRUE;

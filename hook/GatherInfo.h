@@ -28,14 +28,7 @@ public:
 	buff_size_t GetSize();
 	INT8* ToMessageFormat();
 
-	void Print() {
-		if (this->name) {
-			std::wcout << this->type << " (" << this->funcCalled << "): " << this->name << std::endl;
-		}
-		else {
-			std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << std::endl;
-		}
-	}
+	void Print();
 
 private:
 	gather_flag_t type;
