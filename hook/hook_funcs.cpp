@@ -181,13 +181,20 @@ pExitProcess OrigExitProcess = NULL;
 void WINAPI NewExitProcess(UINT uExitCode) {
 	if (waiterThread != NULL) {
 		TerminateThread(waiterThread, 0);
+		CloseHandle(waiterThread);
 		waiterThread = NULL;
+	}
+
+	if (waiterSemaphore != NULL) {
+		CloseHandle(waiterSemaphore);
+		waiterSemaphore = NULL;
 	}
 
 	gatherer->isDisconnecting = true;
 
 	if (gatherThread != NULL) {
 		WaitForSingleObject(gatherThread, INFINITE);
+		CloseHandle(gatherThread);
 		gatherThread = NULL;
 	}
 

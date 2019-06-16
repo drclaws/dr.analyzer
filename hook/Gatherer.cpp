@@ -16,6 +16,7 @@
 #include "DataTransport.h"
 #include "hook_funcs.h"
 #include "flags.h"
+#include "hook.h"
 
 #include <iostream>
 
@@ -36,11 +37,26 @@ void Gatherer::TransferThreadFunc() {
 	std::unique_lock<std::mutex> addCVLock(this->addCvMutex);
 	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);
 
-	this->dataTransport = new DataTransport();
-	this->AddLoadedResToBuff();
-	this->DetourFuncs();
+	try {
+		this->dataTransport = new DataTransport();
+	}
+	catch (std::exception) {
+		TerminateThread(waiterThread, 0);
+		CloseHandle(waiterThread);
+		FreeLibraryAndExitThread(libHModule, 1);
+	}
 
-	bool detoured = true;
+	this->AddLoadedResToBuff();
+
+	bool detoured = this->DetourFuncs();
+	if (!detoured) {
+		TerminateThread(waiterThread, 0);
+		CloseHandle(waiterThread);
+		this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
+		this->isDisconnecting = true;
+		delete this->dataTransport;
+		FreeLibraryAndExitThread(libHModule, 0);
+	}
 
 	while (true) {
 		// Wait for buff input
@@ -48,7 +64,9 @@ void Gatherer::TransferThreadFunc() {
 			this->addCv.wait(addCVLock);
 		}
 		else if (detoured) {
-			this->UndetourFuncs();
+			if (!this->UndetourFuncs()) {
+				this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
+			}
 			detoured = false;
 		}
 
@@ -69,7 +87,7 @@ void Gatherer::TransferThreadFunc() {
 
 		this->buffMutex.unlock();
 
-		if (this->isDisconnecting && this->addUsingCount == 0 && !detoured) {
+		if (this->isDisconnecting && !detoured && this->addUsingCount == 0) {
 			break;
 		}
 	}
@@ -79,13 +97,13 @@ void Gatherer::TransferThreadFunc() {
 
 void Gatherer::AddToBuff(GatherInfo *info) {
 	this->addUsingCount++;
-	this->buffMutex.lock();
 	if (this->isDisconnecting) {
 		delete info;
-		this->buffMutex.unlock();
 		this->addUsingCount--;
 		return;
 	}
+
+	this->buffMutex.lock();
 
 	if (this->buffObj == NULL) {
 		this->buffObj = new BuffObject();
@@ -135,38 +153,106 @@ void Gatherer::AddLoadedResToBuff() {
 	}
 }
 
-void Gatherer::DetourFuncs()
+bool Gatherer::DetourFuncs()
 {
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
+	if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
 
-	DetourAttach(&(PVOID&)OrigCreateFile2, NewCreateFile2);
-	DetourAttach(&(PVOID&)OrigCreateFileA, NewCreateFileA);
-	DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW);
-	DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById);
+	if (DetourAttach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
 
-	DetourAttach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA);
-	DetourAttach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW);
-	DetourAttach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA);
-	DetourAttach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW);
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
 
-	DetourTransactionCommit();
+	if (DetourTransactionCommit() != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	return true;
 }
 
-void Gatherer::UndetourFuncs()
+bool Gatherer::UndetourFuncs()
 {
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	
-	DetourDetach(&(PVOID&)OrigCreateFile2, NewCreateFile2);
-	DetourDetach(&(PVOID&)OrigCreateFileA, NewCreateFileA);
-	DetourDetach(&(PVOID&)OrigCreateFileW, NewCreateFileW);
-	DetourDetach(&(PVOID&)OrigOpenFileById, NewOpenFileById);
+	if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
 
-	DetourDetach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA);
-	DetourDetach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW);
-	DetourDetach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA);
-	DetourDetach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW);
+	if (DetourDetach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
 
-	DetourTransactionCommit();
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourTransactionCommit() != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	return true;
 }

@@ -10,9 +10,11 @@
 #include <iostream>
 
 
+HMODULE libHModule = NULL;
 HANDLE gatherThread = NULL;
-HANDLE waiterThread = NULL;
 
+HANDLE waiterThread = NULL;
+HANDLE waiterSemaphore = NULL;
 
 void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {

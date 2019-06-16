@@ -155,7 +155,7 @@ void DataTransport::SenderThreadFunc()
 			this->queueOperMutex.lock();
 			this->buffQueue.pop();
 			delete buff;
-			//delete[] message;
+			delete[] message;
 		}
 
 		if (this->isDisconnecting) {

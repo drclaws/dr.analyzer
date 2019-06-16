@@ -62,9 +62,9 @@ INT8* GatherInfo::ToMessageFormat()
 	std::memcpy(buff, &this->type, sizeof(this->type));
 	std::memcpy(buff + sizeof(this->type), &this->funcCalled, sizeof(this->funcCalled));
 	if (this->nameLength != 0) {
-		std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled), &this->nameLength, sizeof(this->nameLength));
+		std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled)), &this->nameLength, sizeof(this->nameLength));
 		if (this->nameLength > 0) {
-			std::memcpy(buff + sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength), &this->name, this->nameLength * sizeof(WCHAR));
+			std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength)), &this->name, this->nameLength * sizeof(WCHAR));
 		}
 	}
 
@@ -100,7 +100,7 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 
 	if (sizeGet > size) {
 		filePathRes = new WCHAR[sizeGet];
-		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet - 1, FILE_NAME_NORMALIZED);
+		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet - (DWORD)1, FILE_NAME_NORMALIZED);
 	}
 	else {
 		filePathRes = new WCHAR[sizeGet + 1];

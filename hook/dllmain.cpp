@@ -7,9 +7,10 @@
 #include "hook_funcs.h"
 
 #include "Gatherer.h"
+#include "GatherInfo.h"
+#include "flags.h"
 #include "hook.h"
 
-HMODULE libHModule;
 
 DWORD WINAPI GatherThreadFunc(LPVOID) {
 	gatherer->TransferThreadFunc();
@@ -28,15 +29,21 @@ DWORD WINAPI WaiterForCloseFunc(LPVOID) {
 		waiterSemaphoreName.c_str()
 	);
 
-	WaitForSingleObject(waiterSemaphore, INFINITE);
+	if (waiterSemaphore != NULL) {
+		WaitForSingleObject(waiterSemaphore, INFINITE);
+		CloseHandle(waiterSemaphore);
+	}
+	else {
+		gatherer->AddToBuff(new GatherInfo(GatherType::GatherWaiterError, GatherFuncType::GatherWaiter));
+	}
 
 	gatherer->isDisconnecting = true;
 	if (gatherThread != NULL) {
 		WaitForSingleObject(gatherThread, INFINITE);
+		CloseHandle(gatherThread);
 		gatherThread = NULL;
 	}
-	CloseHandle(waiterSemaphore);
-	waiterThread = NULL;
+
 	FreeLibraryAndExitThread(libHModule, 0);
 }
 
@@ -55,14 +62,20 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (!GetOrigAddresses()) {
 			return FALSE;
 		}
-		gatherer = new Gatherer();
-		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
-			return FALSE;
-		}
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourAttach(&(PVOID&)OrigExitProcess, NewExitProcess);
-		DetourTransactionCommit();
+		if (DetourTransactionCommit() != NO_ERROR) {
+			return FALSE;
+		}
+		gatherer = new Gatherer();
+		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
+			DetourTransactionBegin();
+			DetourUpdateThread(GetCurrentThread());
+			DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
+			DetourTransactionCommit();
+			return FALSE;
+		}
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		delete gatherer;

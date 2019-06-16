@@ -86,16 +86,5 @@ namespace DrAnalyzer.Analyzer
         {
             throw new NotImplementedException();
         }
-
-        public static void Deinject()
-        {
-            if (!Injector.IsSet)
-            {
-                throw new Exception("It has not been injected");
-            }
-
-            throw new NotImplementedException();
-        }
-
     }
 }

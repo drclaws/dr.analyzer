@@ -15,7 +15,7 @@
 class Gatherer
 {
 public:
-	bool isDisconnecting = false;
+	std::atomic_bool isDisconnecting = false;
 
 	Gatherer();
 	~Gatherer();
@@ -42,8 +42,8 @@ private:
 
 	void AddLoadedResToBuff();
 
-	void DetourFuncs();
-	void UndetourFuncs();
+	bool DetourFuncs();
+	bool UndetourFuncs();
 };
 
 

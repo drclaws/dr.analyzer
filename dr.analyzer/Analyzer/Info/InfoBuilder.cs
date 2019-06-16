@@ -71,7 +71,7 @@ namespace DrAnalyzer.Analyzer.Info
                 infoList.Add(info);
             }
 
-            throw new NotImplementedException();
+            return infoList;
         }
     }
 }

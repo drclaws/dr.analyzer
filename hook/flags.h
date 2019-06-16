@@ -24,7 +24,9 @@ enum GatherFuncType {
 	GatherLoadLibraryExW =	GatherLibraryFunc | (gather_flag_t)0x0008,
 
 	GatherConnection =		GatherLoadFunc | (gather_flag_t)0x0001,
-	GatherFilesOnLoad =		GatherLoadFunc | (gather_flag_t)0x0002
+	GatherFilesOnLoad =		GatherLoadFunc | (gather_flag_t)0x0002,
+	GatherWaiter =			GatherLoadFunc | (gather_flag_t)0x0004,
+	GatherBufferSender =	GatherLoadFunc | (gather_flag_t)0x0008
 };
 
 enum GatherType {
@@ -37,6 +39,8 @@ enum GatherType {
 	GatherActivated =	GatherStatus | (gather_flag_t)0x0001,
 	GatherDeactivated = GatherStatus | (gather_flag_t)0x0002,
 	GatherStillUp =		GatherStatus | (gather_flag_t)0x0004,
+	GatherWaiterError = GatherStatus | (gather_flag_t)0x0008,
+	GatherDetourError = GatherStatus | (gather_flag_t)0x0010,
 
 	GatherFile =		GatherResource | (gather_flag_t)0x0001,
 	GatherLibrary =		GatherResource | (gather_flag_t)0x0002

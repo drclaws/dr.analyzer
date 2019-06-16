@@ -85,6 +85,7 @@ namespace DrAnalyzer.Analyzer
     public enum GatherFuncType : UInt16
     {
         GatherUnknownFunc =     0x0000,
+
         GatherFileFunc =        0x1000,
         GatherLibraryFunc =     0x2000,
 
@@ -108,10 +109,14 @@ namespace DrAnalyzer.Analyzer
         [Description("LoadLibraryExW")]
         GatherLoadLibraryExW =  GatherLibraryFunc | 0x0008,
 
-        [Description("GatherConnection")]
+        [Description("Connection stage")]
         GatherConnection =      GatherLoadFunc | 0x0001,
         [Description("FilesOnLoad")]
-        GatherFilesOnLoad =     GatherLoadFunc | 0x0002
+        GatherFilesOnLoad =     GatherLoadFunc | 0x0002,
+        [Description("Waiter thread")]
+        GatherWaiter =          GatherLoadFunc | 0x0004,
+        [Description("Sender thread")]
+        GatherBufferSender =    GatherLoadFunc | 0x0008
     }
 
     [Flags]
@@ -128,10 +133,13 @@ namespace DrAnalyzer.Analyzer
         GatherDeactivated =     GatherStatus | 0x0002,
         [Description("Gathering is up")]
         GatherStillUp =         GatherStatus | 0x0004,
+        [Description("Waiter thread error")]
+        GatherWaiterError =     GatherStatus | 0x0008,
+        [Description("Detouring error")]
+        GatherDetourError =     GatherStatus | 0x0010,
 
         [Description("File")]
         GatherFile =            GatherResource | 0x0001,
-
         [Description("Library")]
         GatherLibrary =         GatherResource | 0x0002
     }
