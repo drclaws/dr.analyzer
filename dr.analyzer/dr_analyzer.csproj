@@ -48,8 +48,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -71,6 +72,7 @@
     <Compile Include="Analyzer\Info\GatheredStatus.cs" />
     <Compile Include="Analyzer\Info\GatheredWarning.cs" />
     <Compile Include="Analyzer\Info\InfoBuilder.cs" />
+    <Compile Include="Analyzer\Info\NotGatheredError.cs" />
     <Compile Include="Analyzer\MessageConverter.cs" />
     <Compile Include="Analyzer\ImportedFuncs.cs" />
     <Compile Include="Analyzer\Flags.cs" />

@@ -81,10 +81,5 @@ namespace DrAnalyzer.Analyzer
 
             Injector.IsSet = true;
         }
-
-        public static void InjectByPath(String exePath)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

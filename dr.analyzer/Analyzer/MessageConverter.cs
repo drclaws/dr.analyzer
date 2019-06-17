@@ -15,7 +15,7 @@ namespace DrAnalyzer.Analyzer
     {
         private readonly Dictionary<string, Info.GatheredResource> resourcesDictionary;
 
-        private readonly System.Windows.Forms.Control logOutputWidget;
+        private readonly MainForm mainFormClass;
 
         private readonly Info.InfoBuilder infoBuilder;
 
@@ -27,10 +27,10 @@ namespace DrAnalyzer.Analyzer
 
         private Thread recieverThread;
 
-        public MessageConverter(System.Windows.Forms.Control logOutputWidget)
+        public MessageConverter(MainForm formClass)
         {
             this.resourcesDictionary = new Dictionary<string, Info.GatheredResource>();
-            this.logOutputWidget = logOutputWidget;
+            this.mainFormClass = formClass;
             this.infoBuilder = new Info.InfoBuilder();
             this.messagesQueue = new Queue<byte[]>();
         }
@@ -65,47 +65,49 @@ namespace DrAnalyzer.Analyzer
             Injector.InjectByPid(pid);
         }
 
-        public void ConnectByExe(string path)
+        public void StopGathering()
         {
-            throw new NotImplementedException(); 
+            this.ipcWaiterSemaphore.Release();
         }
 
         private void RecieverThreadFunc()
         {
+            byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 };
             while (true)
             {
                 MemoryMappedViewStream viewStream;
                 byte[] sizeBuff = new byte[4], message;
-                bool exit = false;
                 List<Info.IGatheredInfo> gatheredInfo;
-                Console.WriteLine("START");
-                this.ipcSemaphore.WaitOne();
-                this.ipcMutex.WaitOne();
 
+                this.ipcSemaphore.WaitOne(10000);
+                this.ipcMutex.WaitOne(1000);
+                
                 viewStream = this.ipcMemory.CreateViewStream();
                 viewStream.Read(sizeBuff, 0, 4);
                 int size = BitConverter.ToInt32(sizeBuff, 0);
+                
+                if (size == 0)
+                {
+                    gatheredInfo = new List<Info.IGatheredInfo>
+                    {
+                        new Info.NotGatheredError()
+                    };
+                    this.mainFormClass.AddInfo(gatheredInfo);
+                    break;
+                }
 
                 message = new byte[size];
                 viewStream.Read(message, 0, size);
-
+                viewStream.Position = 0;
+                viewStream.Write(zeroSizeValue, 0, 4);
+                viewStream.Flush();
                 this.ipcMutex.ReleaseMutex();
 
                 gatheredInfo = this.infoBuilder.ToInfoType(message);
 
+                this.mainFormClass.AddInfo(gatheredInfo);
 
-                foreach (Info.IGatheredInfo info in gatheredInfo)
-                {
-                    if(info.Type == GatherType.GatherDeactivated)
-                    {
-                        exit = true;
-                    }
-                    Console.WriteLine("{0}", info.AsTextMessage());
-                    //this.logOutputWidget.Text += info.AsTextMessage() + '\n';
-                }
-
-
-                if (exit)
+                if (gatheredInfo.Exists(info => info.Type == GatherType.GatherDeactivated))
                 {
                     break;
                 }

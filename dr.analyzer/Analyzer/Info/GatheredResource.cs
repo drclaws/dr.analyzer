@@ -19,7 +19,7 @@ namespace DrAnalyzer.Analyzer.Info
             this.Name = name;
         }
 
-        public virtual string AsTextMessage()
+        public string AsTextMessage()
         {
             return String.Format("{0} ({1}): {2}", this.Type.GetDescription(), this.FuncType.GetDescription(), this.Name);
         }
