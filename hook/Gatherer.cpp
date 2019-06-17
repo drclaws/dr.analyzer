@@ -38,18 +38,22 @@ void Gatherer::TransferThreadFunc() {
 	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);
 
 	try {
+		std::cout << " 15 " << std::endl;
 		this->dataTransport = new DataTransport();
 	}
 	catch (std::exception) {
+		std::cout << " 16 " << std::endl;
 		TerminateThread(waiterThread, 0);
 		CloseHandle(waiterThread);
 		FreeLibraryAndExitThread(libHModule, 1);
 	}
 
+	std::cout << " 17 " << std::endl;
 	this->AddLoadedResToBuff();
 
 	bool detoured = this->DetourFuncs();
 	if (!detoured) {
+		std::cout << " 18 " << std::endl;
 		TerminateThread(waiterThread, 0);
 		CloseHandle(waiterThread);
 		this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
@@ -58,6 +62,7 @@ void Gatherer::TransferThreadFunc() {
 		FreeLibraryAndExitThread(libHModule, 0);
 	}
 
+	std::cout << " 19 " << std::endl;
 	while (true) {
 		// Wait for buff input
 		if (!this->isDisconnecting) {

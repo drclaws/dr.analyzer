@@ -39,14 +39,14 @@ namespace DrAnalyzer.Analyzer.Info
                 Array.Copy(message, currPos, buffFunc, 0, funcTypeSize);
                 currPos += funcTypeSize;
 
-                type = (GatherType)Convert.ToUInt16(buffType);
-                func = (GatherFuncType)Convert.ToInt16(buffFunc);
+                type = (GatherType)BitConverter.ToUInt16(buffType, 0);
+                func = (GatherFuncType)BitConverter.ToInt16(buffFunc, 0);
 
                 if ((type & GatherType.GatherResource) != 0)
                 {
                     Array.Copy(message, currPos, buffNameLength, 0, lengthSize);
                     currPos += lengthSize;
-                    length = Convert.ToInt32(buffNameLength);
+                    length = BitConverter.ToInt32(buffNameLength, 0);
 
                     if (length > 0)
                     {

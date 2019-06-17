@@ -19,10 +19,10 @@ namespace DrAnalyzer.Analyzer
                 if (!Injector.dllPathSet)
                 {
 #if DEBUG
-                    Injector.dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location + @"..\Release\hook.dll";
+                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\..\\Release\\hook.dll";
                     Injector.dllPath = System.IO.Path.GetFullPath(dllPath);
 #else
-                    Injector.dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location + @"\hook.dll";
+                    Injector.dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location + @"\hook.dll\0";
 #endif
                     Injector.dllPathSet = true;
                 }
@@ -42,7 +42,7 @@ namespace DrAnalyzer.Analyzer
             IntPtr openedProcess = ImportedFuncs.OpenProcess(ProcessAccessFlags.All, false, pid);
             IntPtr kernelModule = ImportedFuncs.GetModuleHandle("kernel32.dll");
             IntPtr loadLibratyAddr = ImportedFuncs.GetProcAddress(kernelModule, "LoadLibraryW");
-
+            
             byte[] dllPathBytes = System.Text.Encoding.Unicode.GetBytes(Injector.DllPath);
             Int32 sizeOfPath = dllPathBytes.Length;
             IntPtr sizePtr = new IntPtr(sizeOfPath);

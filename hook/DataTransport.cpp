@@ -36,6 +36,8 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMapping == NULL) {
+		std::cout << "err:" << GetLastError() << std::endl;
+		std::cout << " 21 " << std::endl;
 		throw std::exception("Connection error: Can't open mapping");
 	}
 
@@ -48,6 +50,8 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportView == NULL) {
+
+		std::cout << " 22 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't assign view");
 	}
@@ -59,6 +63,8 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMutex == NULL) {
+
+		std::cout << " 23 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open mutex");
 	}
@@ -70,6 +76,7 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportSemaphore == NULL) {
+		std::cout << " 24 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
@@ -138,7 +145,7 @@ void DataTransport::SenderThreadFunc()
 
 			this->queueOperMutex.unlock();
 			
-			//buff->Print();
+			buff->Print();
 
 			
 			INT8* message = buff->ToMessage();
@@ -150,7 +157,7 @@ void DataTransport::SenderThreadFunc()
 			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
 
 			// Wait for message read ends
-			waitRes = WaitForSingleObject(this->transportSemaphore, 0L);
+			//waitRes = WaitForSingleObject(this->transportSemaphore, INFINITE);
 			
 			this->queueOperMutex.lock();
 			this->buffQueue.pop();
