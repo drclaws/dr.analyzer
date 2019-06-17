@@ -64,7 +64,7 @@ INT8* GatherInfo::ToMessageFormat()
 	if (this->nameLength != 0) {
 		std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled)), &this->nameLength, sizeof(this->nameLength));
 		if (this->nameLength > 0) {
-			std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength)), &this->name, this->nameLength * sizeof(WCHAR));
+			std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength)), this->name, this->nameLength * sizeof(WCHAR));
 		}
 	}
 
@@ -124,8 +124,8 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
 		sizeGet++;
 	}
 
-	filePathRes = new WCHAR[sizeGet];
-	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
+	filePathRes = new WCHAR[sizeGet - 1];
+	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * (sizeGet - 1));
 
-	return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, sizeGet);
+	return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, (sizeGet - 1));
 }
