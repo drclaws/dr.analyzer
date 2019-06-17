@@ -43,7 +43,7 @@ void Gatherer::TransferThreadFunc() {
 	catch (std::exception) {
 		TerminateThread(waiterThread, 0);
 		CloseHandle(waiterThread);
-		FreeLibraryAndExitThread(libHModule, 1);
+		FreeLibraryAndExitThread(libHModule, 0);
 	}
 
 	this->AddLoadedResToBuff();

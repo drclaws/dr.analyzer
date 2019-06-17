@@ -22,7 +22,7 @@ namespace DrAnalyzer.Analyzer
                     Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\..\\Release\\hook.dll";
                     Injector.dllPath = System.IO.Path.GetFullPath(dllPath);
 #else
-                    Injector.dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location + @"\hook.dll\0";
+                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\hook.dll";
 #endif
                     Injector.dllPathSet = true;
                 }

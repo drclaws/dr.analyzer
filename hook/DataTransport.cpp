@@ -36,8 +36,6 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMapping == NULL) {
-		std::cout << "err:" << GetLastError() << std::endl;
-		std::cout << " 21 " << std::endl;
 		throw std::exception("Connection error: Can't open mapping");
 	}
 
@@ -50,8 +48,6 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportView == NULL) {
-
-		std::cout << " 22 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't assign view");
 	}
@@ -63,8 +59,6 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportMutex == NULL) {
-
-		std::cout << " 23 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open mutex");
 	}
@@ -76,7 +70,6 @@ DataTransport::DataTransport()
 	);
 
 	if (this->transportSemaphore == NULL) {
-		std::cout << " 24 " << std::endl;
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
@@ -146,7 +139,6 @@ void DataTransport::SenderThreadFunc()
 			this->queueOperMutex.unlock();
 			
 			buff->Print();
-
 			
 			INT8* message = buff->ToMessage();
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);

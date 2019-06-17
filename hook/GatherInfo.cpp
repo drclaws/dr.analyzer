@@ -104,7 +104,7 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 	}
 	else {
 		filePathRes = new WCHAR[sizeGet + 1];
-		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
+		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * (sizeGet + 1));
 	}
 
 	return new GatherInfo(GatherType::GatherFile, funcCalled, filePathRes, sizeGet);
@@ -124,8 +124,8 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
 		sizeGet++;
 	}
 
-	filePathRes = new WCHAR[sizeGet - 1];
-	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * (sizeGet - 1));
+	filePathRes = new WCHAR[sizeGet];
+	std::memcpy(filePathRes, filePath, sizeof(WCHAR) * sizeGet);
 
-	return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, (sizeGet - 1));
+	return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, sizeGet - 1);
 }
