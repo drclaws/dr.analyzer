@@ -15,15 +15,16 @@
 class Gatherer
 {
 public:
-	std::atomic_bool isDisconnecting = false;
-
 	Gatherer();
 	~Gatherer();
 
 	void TransferThreadFunc();
 	void AddToBuff(GatherInfo* info);
+	void SetDisconnect();
 
 private:
+	std::atomic_bool isDisconnecting = false;
+
 	std::atomic_bool threadNotified = false;
 
 	std::atomic_uint addUsingCount = 0;

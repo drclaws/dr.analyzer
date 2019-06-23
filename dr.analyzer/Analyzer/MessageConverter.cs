@@ -19,13 +19,18 @@ namespace DrAnalyzer.Analyzer
 
         private readonly Info.InfoBuilder infoBuilder;
 
-        private readonly Queue<byte[]> messagesQueue;
         private MemoryMappedFile ipcMemory;
         private Mutex ipcMutex;
         private Semaphore ipcSemaphore;
         private Semaphore ipcWaiterSemaphore;
 
         private Thread recieverThread;
+        private Thread queueThread;
+        private readonly Queue<byte[]> messagesQueue;
+        private Semaphore queueSem;
+        private Mutex queueMutex;
+
+        private bool isExit;
 
         public MessageConverter(MainForm formClass)
         {
@@ -58,8 +63,14 @@ namespace DrAnalyzer.Analyzer
                 throw new Exception("One of sync object is already created");
             }
 
+            this.queueSem = new Semaphore(0, 1);
+            this.queueMutex = new Mutex(false);
+            this.isExit = false;
+
+            this.queueThread = new Thread(this.QueueThreadFunc);
             this.recieverThread = new Thread(this.RecieverThreadFunc);
 
+            this.queueThread.Start();
             this.recieverThread.Start();
 
             Injector.InjectByPid(pid);
@@ -70,16 +81,90 @@ namespace DrAnalyzer.Analyzer
             this.ipcWaiterSemaphore.Release();
         }
 
+        private void FreeSharedObjects()
+        {
+            this.ipcWaiterSemaphore.SafeWaitHandle.Close();
+            this.ipcSemaphore.SafeWaitHandle.Close();
+            this.ipcMutex.SafeWaitHandle.Close();
+            this.ipcMemory.SafeMemoryMappedFileHandle.Close();
+            this.ipcWaiterSemaphore = null;
+            this.ipcSemaphore = null;
+            this.ipcMutex = null;
+            this.ipcMemory = null;
+        }
+
+        private void QueueThreadFunc()
+        {
+            while (true)
+            {
+                bool disconnectRecieved = false;
+
+                this.queueSem.WaitOne();
+
+                List<Info.IGatheredInfo> gatheredInfo;
+
+                if (isExit)
+                {
+                    gatheredInfo = new List<Info.IGatheredInfo> { new Info.NotGatheredError() };
+                    this.mainFormClass.AddInfo(gatheredInfo);
+                    this.FreeSharedObjects();
+                    break;
+                }
+
+                while (true)
+                {
+                    byte[] message;
+
+                    this.queueMutex.WaitOne();
+                    try
+                    {
+                        message = this.messagesQueue.Dequeue();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        this.queueMutex.ReleaseMutex();
+                        break;
+                    }
+                    this.queueMutex.ReleaseMutex();
+
+                    gatheredInfo = this.infoBuilder.ToInfoType(message);
+                    this.mainFormClass.AddInfo(gatheredInfo);
+
+                    if (gatheredInfo.Exists(info => info.Type == GatherType.GatherDeactivated))
+                    {
+                        disconnectRecieved = true;
+                        break;
+                    }
+                }
+
+                if (disconnectRecieved)
+                {
+                    this.isExit = true;
+                    this.ipcSemaphore.Release();
+                    this.recieverThread.Join();
+                    this.FreeSharedObjects();
+                    break;
+                }
+            }
+        }
+
         private void RecieverThreadFunc()
         {
             byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 };
+
             while (true)
             {
                 MemoryMappedViewStream viewStream;
                 byte[] sizeBuff = new byte[4], message;
-                List<Info.IGatheredInfo> gatheredInfo;
 
+                System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
+                watch.Start();
                 this.ipcSemaphore.WaitOne(10000);
+                watch.Stop();
+                if (this.isExit)
+                {
+                    break;
+                }
                 this.ipcMutex.WaitOne(1000);
                 
                 viewStream = this.ipcMemory.CreateViewStream();
@@ -88,11 +173,14 @@ namespace DrAnalyzer.Analyzer
                 
                 if (size == 0)
                 {
-                    gatheredInfo = new List<Info.IGatheredInfo>
+                    this.ipcMutex.ReleaseMutex();
+                    if (watch.ElapsedMilliseconds < 10000)
                     {
-                        new Info.NotGatheredError()
-                    };
-                    this.mainFormClass.AddInfo(gatheredInfo);
+                        continue;
+                    }
+                    this.isExit = true;
+                    this.queueSem.Release();
+                    this.queueThread.Join();
                     break;
                 }
 
@@ -103,14 +191,14 @@ namespace DrAnalyzer.Analyzer
                 viewStream.Flush();
                 this.ipcMutex.ReleaseMutex();
 
-                gatheredInfo = this.infoBuilder.ToInfoType(message);
-
-                this.mainFormClass.AddInfo(gatheredInfo);
-
-                if (gatheredInfo.Exists(info => info.Type == GatherType.GatherDeactivated))
+                this.queueMutex.WaitOne();
+                this.messagesQueue.Enqueue(message);
+                this.queueMutex.ReleaseMutex();
+                try
                 {
-                    break;
+                    this.queueSem.Release();
                 }
+                catch(SemaphoreFullException) { }
             }
         }
     }

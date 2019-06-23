@@ -22,7 +22,6 @@ DWORD WINAPI WaiterForCloseFunc(LPVOID) {
 		FreeLibraryAndExitThread(libHModule, 1);
 	}
 
-
 	std::wstring waiterSemaphoreName = L"Global\\dr_analyzer_waiter_semaphore_" + std::to_wstring(GetCurrentProcessId());
 	HANDLE waiterSemaphore = OpenSemaphoreW(
 		SEMAPHORE_ALL_ACCESS,
@@ -38,7 +37,8 @@ DWORD WINAPI WaiterForCloseFunc(LPVOID) {
 		gatherer->AddToBuff(new GatherInfo(GatherType::GatherWaiterError, GatherFuncType::GatherWaiter));
 	}
 
-	gatherer->isDisconnecting = true;
+	gatherer->SetDisconnect();
+
 	if (gatherThread != NULL) {
 		WaitForSingleObject(gatherThread, INFINITE);
 		CloseHandle(gatherThread);

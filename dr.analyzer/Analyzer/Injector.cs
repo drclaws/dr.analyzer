@@ -30,15 +30,10 @@ namespace DrAnalyzer.Analyzer
             }
         }
 
-        public static bool IsSet { get; private set; } = false;
+        //public static bool IsSet { get; private set; } = false;
         
         public static void InjectByPid(Int32 pid)
         {
-            if (Injector.IsSet)
-            {
-                throw new Exception("It's already injected");
-            }
-
             IntPtr openedProcess = ImportedFuncs.OpenProcess(ProcessAccessFlags.All, false, pid);
             IntPtr kernelModule = ImportedFuncs.GetModuleHandle("kernel32.dll");
             IntPtr loadLibratyAddr = ImportedFuncs.GetProcAddress(kernelModule, "LoadLibraryW");
@@ -78,8 +73,6 @@ namespace DrAnalyzer.Analyzer
             }
 
             ImportedFuncs.CloseHandle(threadId);
-
-            Injector.IsSet = true;
         }
     }
 }

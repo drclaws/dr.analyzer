@@ -36,7 +36,7 @@ Gatherer::~Gatherer()
 void Gatherer::TransferThreadFunc() {
 	std::unique_lock<std::mutex> addCVLock(this->addCvMutex);
 	std::unique_lock<std::mutex> buffFullCVLock(this->buffFullCvMutex);
-
+	
 	try {
 		this->dataTransport = new DataTransport();
 	}
@@ -91,7 +91,6 @@ void Gatherer::TransferThreadFunc() {
 			break;
 		}
 	}
-
 	delete this->dataTransport;
 }
 
@@ -122,6 +121,12 @@ void Gatherer::AddToBuff(GatherInfo *info) {
 
 	this->buffMutex.unlock();
 	this->addUsingCount--;
+}
+
+void Gatherer::SetDisconnect()
+{
+	this->isDisconnecting = true;
+	this->addCv.notify_one();
 }
 
 

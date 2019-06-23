@@ -6,9 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hook", "hook\hook.vcxproj", "{1FC76583-540A-4DD4-A196-0B3A2B059D2F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dr_analyzer", "dr.analyzer\dr_analyzer.csproj", "{0D063BA1-228D-49F1-84CB-70878D5FFBCA}"
-	ProjectSection(ProjectDependencies) = postProject
-		{1FC76583-540A-4DD4-A196-0B3A2B059D2F} = {1FC76583-540A-4DD4-A196-0B3A2B059D2F}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

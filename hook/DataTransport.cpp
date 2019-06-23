@@ -89,7 +89,6 @@ DataTransport::~DataTransport()
 	this->queueOperMutex.lock();
 
 	this->isDisconnecting = true;
-
 	BuffObject* buff = new BuffObject();
 	buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
 	this->buffQueue.push(buff);
@@ -138,18 +137,14 @@ void DataTransport::SenderThreadFunc()
 
 			this->queueOperMutex.unlock();
 			
-			buff->Print();
-			
 			INT8* message = buff->ToMessage();
+
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
 
 			std::memcpy(this->transportView, message, buff->MessageSize());
 
 			ReleaseMutex(this->transportMutex);
 			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
-
-			// Wait for message read ends
-			//waitRes = WaitForSingleObject(this->transportSemaphore, INFINITE);
 			
 			this->queueOperMutex.lock();
 			this->buffQueue.pop();

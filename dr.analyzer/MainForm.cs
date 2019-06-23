@@ -18,13 +18,13 @@ namespace DrAnalyzer
         private List<string> modulesList;
         private List<string> filesList;
         private Mutex syncObj;
-        private bool working = false;
 
         public Analyzer.MessageConverter converter;
 
         private System.Windows.Forms.Timer timer;
 
         private bool started = false;
+
 
         public MainForm()
         {
@@ -62,29 +62,29 @@ namespace DrAnalyzer
 
         public void AddInfo(List<Analyzer.Info.IGatheredInfo> info)
         {
-            while(this.working)
-            {
-                Thread.Sleep(50);
-            }
-            this.working = true;
+            this.syncObj.WaitOne();
             this.addedList.AddRange(info);
-            this.working = false;
+            this.syncObj.ReleaseMutex();
         }
 
         public void TimerFunc(Object myObject, EventArgs myEventArgs)
         {
-            while (this.working)
-            {
-                Thread.Sleep(50);
-            }
-            this.working = true;
+            this.syncObj.WaitOne();
 
             if (this.addedList.Count == 0)
             {
+                this.syncObj.ReleaseMutex();
                 return;
             }
+
+            Analyzer.Info.IGatheredInfo[] infos = this.addedList.ToArray();
+
+            this.addedList.Clear();
+
+            this.syncObj.ReleaseMutex();
+
             string textlog = "";
-            foreach(Analyzer.Info.IGatheredInfo info in this.addedList)
+            foreach(Analyzer.Info.IGatheredInfo info in infos)
             {
                 textlog += info.AsTextMessage() + "\r\n";
                 switch(info.Type)
@@ -107,10 +107,12 @@ namespace DrAnalyzer
                 }
             }
             this.textBox1.Text += textlog;
+        }
 
-            this.addedList.Clear();
-
-            this.working = false;
+        private void TextBox1_TextChanged(object sender, EventArgs e)
+        {
+            textBox1.SelectionStart = textBox1.Text.Length;
+            textBox1.ScrollToCaret();
         }
     }
 }

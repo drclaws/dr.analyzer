@@ -190,7 +190,7 @@ void WINAPI NewExitProcess(UINT uExitCode) {
 		waiterSemaphore = NULL;
 	}
 
-	gatherer->isDisconnecting = true;
+	gatherer->SetDisconnect();
 
 	if (gatherThread != NULL) {
 		WaitForSingleObject(gatherThread, INFINITE);
