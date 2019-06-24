@@ -15,8 +15,8 @@ namespace DrAnalyzer
     public partial class MainForm : Form
     {
         private List<Analyzer.Info.IGatheredInfo> addedList;
-        private List<string> modulesList;
-        private List<string> filesList;
+        private Dictionary<string, Analyzer.Info.IGatheredInfo> modulesList;
+        private Dictionary<string, Analyzer.Info.IGatheredInfo> filesList;
         private Mutex syncObj;
 
         public Analyzer.MessageConverter converter;
@@ -29,12 +29,11 @@ namespace DrAnalyzer
         public MainForm()
         {
             InitializeComponent();
-            this.modulesList = new List<string>();
-            this.filesList = new List<string>();
+            this.modulesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
+            this.filesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
             this.addedList = new List<Analyzer.Info.IGatheredInfo>();
             this.syncObj = new Mutex();
-            this.timer = new System.Windows.Forms.Timer();
-            this.timer.Interval = 300;
+            this.timer = new System.Windows.Forms.Timer { Interval = 300 };
             this.timer.Tick += new EventHandler(this.TimerFunc);
 
             this.converter = new Analyzer.MessageConverter(this);
@@ -51,6 +50,10 @@ namespace DrAnalyzer
             {
                 converter.ConnectByPid(Convert.ToInt32(this.pidTextBox.Text));
                 this.textBox1.Text = "";
+                this.listBox1.Items.Clear();
+                this.listBox2.Items.Clear();
+                this.filesList.Clear();
+                this.modulesList.Clear();
                 this.timer.Start();
                 this.startButton.Text = "Stop";
                 this.pidTextBox.Enabled = false;
@@ -87,11 +90,25 @@ namespace DrAnalyzer
             foreach(Analyzer.Info.IGatheredInfo info in infos)
             {
                 textlog += info.AsTextMessage() + "\r\n";
+                if (info is Analyzer.Info.GatheredWarning)
+                {
+                    continue;
+                }
                 switch(info.Type)
                 {
                     case Analyzer.GatherType.GatherFile:
+                        if (!this.filesList.ContainsKey(info.Name))
+                        {
+                            this.filesList.Add(info.Name, info);
+                            this.listBox2.Items.Add(info.Name);
+                        }
                         break;
                     case Analyzer.GatherType.GatherLibrary:
+                        if (!this.modulesList.ContainsKey(info.Name))
+                        {
+                            this.modulesList.Add(info.Name, info);
+                            this.listBox1.Items.Add(info.Name);
+                        }
                         break;
                     case Analyzer.GatherType.GatherDeactivated:
                         this.timer.Stop();

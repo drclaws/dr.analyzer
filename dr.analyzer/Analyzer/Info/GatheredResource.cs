@@ -23,10 +23,5 @@ namespace DrAnalyzer.Analyzer.Info
         {
             return String.Format("{0} ({1}): {2}", this.Type.GetDescription(), this.FuncType.GetDescription(), this.Name);
         }
-
-        public object AsObject()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

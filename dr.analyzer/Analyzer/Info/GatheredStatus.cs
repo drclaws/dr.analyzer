@@ -34,11 +34,6 @@ namespace DrAnalyzer.Analyzer.Info
             this.FuncType = funcType;
         }
 
-        public object AsObject()
-        {
-            throw new NotImplementedException();
-        }
-
         public string AsTextMessage()
         {
             return String.Format("{0} ({1})", this.Type.GetDescription(), this.FuncType.GetDescription());

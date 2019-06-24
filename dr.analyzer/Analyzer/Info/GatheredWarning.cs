@@ -40,11 +40,6 @@ namespace DrAnalyzer.Analyzer.Info
             this.Warning = (WarningType)warningType;
         }
 
-        public object AsObject()
-        {
-            throw new NotImplementedException();
-        }
-
         public string AsTextMessage()
         {
             return String.Format("Warning {0} ({1}): {2}", this.Type.GetDescription(), this.FuncType.GetDescription(), this.Name);

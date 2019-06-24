@@ -154,19 +154,6 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listBox1.FormattingEnabled = true;
-            this.listBox1.Items.AddRange(new object[] {
-            "C:\\Users\\Alexander\\Desktop\\ai_lab1\\hook_test\\test_openfile_cpp.exe",
-            "C:\\Windows\\SYSTEM32\\ntdll.dll",
-            "C:\\Windows\\System32\\KERNEL32.DLL",
-            "C:\\Windows\\System32\\KERNELBASE.dll",
-            "C:\\Windows\\SYSTEM32\\apphelp.dll",
-            "C:\\Windows\\System32\\ucrtbase.dll",
-            "C:\\Windows\\SYSTEM32\\MSVCP140.dll",
-            "C:\\Windows\\SYSTEM32\\VCRUNTIME140.dll",
-            "C:\\Users\\Alexander\\source\\repos\\drclaws\\dr.analyzer\\bin\\Release\\hook.dll",
-            "C:\\Windows\\System32\\kernel.appcore.dll",
-            "C:\\Windows\\System32\\msvcrt.dll",
-            "C:\\Windows\\System32\\RPCRT4.dll"});
             this.listBox1.Location = new System.Drawing.Point(7, 19);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(317, 147);
@@ -187,8 +174,6 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.listBox2.FormattingEnabled = true;
-            this.listBox2.Items.AddRange(new object[] {
-            "C:\\Users\\Alexander\\Desktop\\ai_lab1\\hook_test\\text.txt"});
             this.listBox2.Location = new System.Drawing.Point(9, 21);
             this.listBox2.Name = "listBox2";
             this.listBox2.Size = new System.Drawing.Size(315, 160);

@@ -14,11 +14,6 @@ namespace DrAnalyzer.Analyzer.Info
 
         public string Name { get; } = "Connection with the process lost";
 
-        public object AsObject()
-        {
-            throw new NotImplementedException();
-        }
-
         public string AsTextMessage()
         {
             return String.Format("{0} ({1})", this.Type.GetDescription(), this.FuncType.GetDescription());

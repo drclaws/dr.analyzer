@@ -13,7 +13,6 @@ namespace DrAnalyzer.Analyzer.Info
         string Name { get; }
 
         string AsTextMessage();
-        object AsObject();
 
     }
 }
