@@ -37,6 +37,7 @@ namespace DrAnalyzer
             this.timer.Tick += new EventHandler(this.TimerFunc);
 
             this.converter = new Analyzer.MessageConverter(this);
+            this.checkBox1_CheckStateChanged(null, null);
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -56,10 +57,15 @@ namespace DrAnalyzer
                 this.modulesList.Clear();
                 this.timer.Start();
                 this.startButton.Text = "Stop";
-                this.pidTextBox.Enabled = false;
+                this.pidTextBox.ReadOnly = true;
                 this.textBox2.Enabled = false;
+                this.label2.Enabled = false;
                 this.button1.Enabled = false;
                 this.started = true;
+                this.label5.Enabled = false;
+                this.checkBox1.Enabled = false;
+
+                this.saveButton.Enabled = true;
             }
         }
 
@@ -97,25 +103,36 @@ namespace DrAnalyzer
                 switch(info.Type)
                 {
                     case Analyzer.GatherType.GatherFile:
-                        if (!this.filesList.ContainsKey(info.Name))
                         {
-                            this.filesList.Add(info.Name, info);
-                            this.listBox2.Items.Add(info.Name);
+                            string name = info.Name.ToLower();
+                            if (name.StartsWith(@"\\?\"))
+                            {
+                                name = name.Remove(0, 4);
+                            }
+                            if (!this.filesList.ContainsKey(name))
+                            {
+                                this.filesList.Add(name, info);
+                                this.listBox2.Items.Add(name);
+                            }
                         }
                         break;
                     case Analyzer.GatherType.GatherLibrary:
-                        if (!this.modulesList.ContainsKey(info.Name))
                         {
-                            this.modulesList.Add(info.Name, info);
-                            this.listBox1.Items.Add(info.Name);
+                            string name = System.IO.Path.GetFullPath(info.Name.ToLower());
+                            if (!this.modulesList.ContainsKey(name))
+                            {
+                                this.modulesList.Add(name, info);
+                                this.listBox1.Items.Add(name);
+                            }
                         }
                         break;
                     case Analyzer.GatherType.GatherDeactivated:
                         this.timer.Stop();
                         this.startButton.Text = "Start";
-                        this.pidTextBox.Enabled = true;
-                        this.textBox2.Enabled = true;
-                        this.button1.Enabled = true;
+                        this.pidTextBox.ReadOnly = false;
+                        this.label5.Enabled = true;
+                        this.checkBox1.Enabled = true;
+                        this.checkBox1_CheckStateChanged(null, null);
                         this.started = false;
                         this.startButton.Enabled = true;
                         break;
@@ -130,6 +147,27 @@ namespace DrAnalyzer
         {
             textBox1.SelectionStart = textBox1.Text.Length;
             textBox1.ScrollToCaret();
+        }
+
+        private void checkBox1_CheckStateChanged(object sender, EventArgs e)
+        {
+            if (this.checkBox1.Checked == true)
+            {
+                this.label2.Enabled = true;
+                this.textBox2.Enabled = true;
+                this.button1.Enabled = true;
+            }
+            else
+            {
+                this.label2.Enabled = false;
+                this.textBox2.Enabled = false;
+                this.button1.Enabled = false;
+            }
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+
         }
     }
 }

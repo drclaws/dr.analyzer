@@ -16,7 +16,7 @@ namespace DrAnalyzer.Analyzer.Info
 
         public string AsTextMessage()
         {
-            return String.Format("{0} ({1})", this.Type.GetDescription(), this.FuncType.GetDescription());
+            return String.Format("{0} ({1})", this.Type.GetDescription(), "RecieverThreadFunc");
         }
     }
 }
