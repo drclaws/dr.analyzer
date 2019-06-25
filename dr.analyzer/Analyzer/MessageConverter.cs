@@ -32,6 +32,8 @@ namespace DrAnalyzer.Analyzer
 
         private bool isExit;
 
+        public bool Active { get; private set; } = false;
+
         public MessageConverter(MainForm formClass)
         {
             this.resourcesDictionary = new Dictionary<string, Info.GatheredResource>();
@@ -74,6 +76,8 @@ namespace DrAnalyzer.Analyzer
             this.recieverThread.Start();
 
             Injector.InjectByPid(pid);
+
+            this.Active = true;
         }
 
         public void StopGathering()
@@ -107,6 +111,7 @@ namespace DrAnalyzer.Analyzer
                 {
                     gatheredInfo = new List<Info.IGatheredInfo> { new Info.NotGatheredError() };
                     this.mainFormClass.AddInfo(gatheredInfo);
+                    this.Active = false;
                     this.FreeSharedObjects();
                     break;
                 }
@@ -142,6 +147,7 @@ namespace DrAnalyzer.Analyzer
                     this.isExit = true;
                     this.ipcSemaphore.Release();
                     this.recieverThread.Join();
+                    this.Active = false;
                     this.FreeSharedObjects();
                     break;
                 }
@@ -200,6 +206,12 @@ namespace DrAnalyzer.Analyzer
                 }
                 catch(SemaphoreFullException) { }
             }
+        }
+
+        public void AbortGathering()
+        {
+            this.StopGathering();
+            this.queueThread.Join();
         }
     }
 }

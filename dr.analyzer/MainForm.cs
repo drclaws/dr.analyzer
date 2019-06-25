@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace DrAnalyzer
 {
@@ -17,6 +18,7 @@ namespace DrAnalyzer
         private List<Analyzer.Info.IGatheredInfo> addedList;
         private Dictionary<string, Analyzer.Info.IGatheredInfo> modulesList;
         private Dictionary<string, Analyzer.Info.IGatheredInfo> filesList;
+        private List<string> fileDirsList;
         private Mutex syncObj;
 
         public Analyzer.MessageConverter converter;
@@ -25,6 +27,7 @@ namespace DrAnalyzer
 
         private bool started = false;
 
+        private string handlePath = String.Empty;
 
         public MainForm()
         {
@@ -32,12 +35,23 @@ namespace DrAnalyzer
             this.modulesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
             this.filesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
             this.addedList = new List<Analyzer.Info.IGatheredInfo>();
+            this.fileDirsList = new List<string>();
             this.syncObj = new Mutex();
             this.timer = new System.Windows.Forms.Timer { Interval = 300 };
             this.timer.Tick += new EventHandler(this.TimerFunc);
 
             this.converter = new Analyzer.MessageConverter(this);
-            this.checkBox1_CheckStateChanged(null, null);
+
+            string handlePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\handle64.exe";
+            if (File.Exists(handlePath))
+            {
+                this.handlePath = handlePath;
+                this.label6.Text = "Handle found";
+            }
+            else
+            {
+                this.label6.Text = "Handle not found";
+            }
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -55,20 +69,48 @@ namespace DrAnalyzer
                 this.listBox2.Items.Clear();
                 this.filesList.Clear();
                 this.modulesList.Clear();
-                this.timer.Start();
+                this.fileDirsList.Clear();
                 this.startButton.Text = "Stop";
                 this.pidTextBox.ReadOnly = true;
-                this.textBox2.Enabled = false;
-                this.label2.Enabled = false;
-                this.button1.Enabled = false;
                 this.started = true;
-                this.label5.Enabled = false;
-                this.checkBox1.Enabled = false;
+
+                if (handlePath != String.Empty)
+                {
+                    using (var proc = new System.Diagnostics.Process {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = this.handlePath,
+                            Arguments = String.Format("-p {0} -nobanner", Convert.ToInt32(this.pidTextBox.Text)),
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            CreateNoWindow = true
+                        }}) {
+
+                        proc.Start();
+
+                        proc.WaitForExit();
+
+                        List<Analyzer.Info.IGatheredInfo> infos = new List<Analyzer.Info.IGatheredInfo>();
+                        Regex re = new Regex(@"(?<=[ ]*[0-9A-F]+: File[ \t]+[\(].+[\)][ \t]+)\b.+");
+                        while (!proc.StandardOutput.EndOfStream)
+                        {
+                            string line = proc.StandardOutput.ReadLine();
+                            string value = re.Match(line).Value;
+                            if (value != String.Empty && System.IO.Path.GetFileName(value) != String.Empty)
+                            {
+                                infos.Add(new Analyzer.Info.GatheredResource(Analyzer.GatherType.GatherFile, Analyzer.GatherFuncType.GatherConnection, value));
+                            }
+                        }
+                        this.AddInfo(infos);
+                    }
+                }
+
+                this.timer.Start();
 
                 this.saveButton.Enabled = true;
             }
         }
-
+        
         public void AddInfo(List<Analyzer.Info.IGatheredInfo> info)
         {
             this.syncObj.WaitOne();
@@ -111,8 +153,16 @@ namespace DrAnalyzer
                             }
                             if (!this.filesList.ContainsKey(name))
                             {
-                                this.filesList.Add(name, info);
-                                this.listBox2.Items.Add(name);
+                                try
+                                {
+                                    FileAttributes attrs = File.GetAttributes(name);
+                                    if (!attrs.HasFlag(FileAttributes.Directory))
+                                    {
+                                        this.filesList.Add(name, info);
+                                        this.listBox2.Items.Add(name);
+                                    }
+                                } catch (Exception) { continue; }
+                                
                             }
                         }
                         break;
@@ -130,9 +180,6 @@ namespace DrAnalyzer
                         this.timer.Stop();
                         this.startButton.Text = "Start";
                         this.pidTextBox.ReadOnly = false;
-                        this.label5.Enabled = true;
-                        this.checkBox1.Enabled = true;
-                        this.checkBox1_CheckStateChanged(null, null);
                         this.started = false;
                         this.startButton.Enabled = true;
                         break;
@@ -149,25 +196,56 @@ namespace DrAnalyzer
             textBox1.ScrollToCaret();
         }
 
-        private void checkBox1_CheckStateChanged(object sender, EventArgs e)
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (this.checkBox1.Checked == true)
+            this.timer.Stop();
+            if (this.converter.Active)
             {
-                this.label2.Enabled = true;
-                this.textBox2.Enabled = true;
-                this.button1.Enabled = true;
-            }
-            else
-            {
-                this.label2.Enabled = false;
-                this.textBox2.Enabled = false;
-                this.button1.Enabled = false;
+                this.converter.AbortGathering();
             }
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private void saveButton_Click(object sender, EventArgs e)
         {
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
+            saveFileDialog1.Filter = "Text file|*.txt|All Files|*";
+            saveFileDialog1.Title = "Save an files list";
+            saveFileDialog1.ShowDialog();
 
+            if(saveFileDialog1.FileName != "")
+            {
+                System.IO.StreamWriter fs = new System.IO.StreamWriter(saveFileDialog1.OpenFile());
+
+                bool anyModules = this.modulesList.Any(), anyFiles = this.filesList.Any();
+
+                if (!(anyModules || anyFiles))
+                {
+                    fs.WriteLine("File list empty");
+                }
+                else
+                {
+                    if (anyModules)
+                    {
+                        fs.WriteLine("Modules' files:");
+                        foreach (Analyzer.Info.IGatheredInfo module in this.modulesList.Values)
+                        {
+                            fs.WriteLine(module.Name);
+                        }
+                        fs.WriteLine();
+                    }
+
+                    if (anyFiles)
+                    {
+                        fs.WriteLine("Ordinary files:");
+                        foreach (Analyzer.Info.IGatheredInfo file in this.filesList.Values)
+                        {
+                            fs.WriteLine(file.Name);
+                        }
+                    }
+                }
+                
+                fs.Close();
+            }
         }
     }
 }
