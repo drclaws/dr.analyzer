@@ -69,8 +69,8 @@ namespace DrAnalyzer.Analyzer
             this.queueMutex = new Mutex(false);
             this.isExit = false;
 
-            this.queueThread = new Thread(this.QueueThreadFunc);
             this.recieverThread = new Thread(this.RecieverThreadFunc);
+            this.queueThread = new Thread(this.QueueThreadFunc);
 
             this.queueThread.Start();
             this.recieverThread.Start();
@@ -156,14 +156,12 @@ namespace DrAnalyzer.Analyzer
 
         private void RecieverThreadFunc()
         {
-            byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 };
+            byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 }, sizeBuff = new byte[4], message;
+            MemoryMappedViewStream viewStream = this.ipcMemory.CreateViewStream();
+            System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
             while (true)
             {
-                MemoryMappedViewStream viewStream;
-                byte[] sizeBuff = new byte[4], message;
-
-                System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
                 watch.Start();
                 this.ipcSemaphore.WaitOne(10000);
                 watch.Stop();
@@ -171,9 +169,9 @@ namespace DrAnalyzer.Analyzer
                 {
                     break;
                 }
-                this.ipcMutex.WaitOne(1000);
-                
-                viewStream = this.ipcMemory.CreateViewStream();
+                this.ipcMutex.WaitOne();
+
+                viewStream.Position = 0;
                 viewStream.Read(sizeBuff, 0, 4);
                 int size = BitConverter.ToInt32(sizeBuff, 0);
                 

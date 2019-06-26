@@ -80,15 +80,13 @@ namespace DrAnalyzer
                         StartInfo = new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = this.handlePath,
-                            Arguments = String.Format("-p {0} -nobanner", Convert.ToInt32(this.pidTextBox.Text)),
+                            Arguments = String.Format("-p {0} -nobanner", this.pidTextBox.Text),
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             CreateNoWindow = true
                         }}) {
 
                         proc.Start();
-
-                        proc.WaitForExit();
 
                         List<Analyzer.Info.IGatheredInfo> infos = new List<Analyzer.Info.IGatheredInfo>();
                         Regex re = new Regex(@"(?<=[ ]*[0-9A-F]+: File[ \t]+[\(].+[\)][ \t]+)\b.+");
@@ -101,6 +99,9 @@ namespace DrAnalyzer
                                 infos.Add(new Analyzer.Info.GatheredResource(Analyzer.GatherType.GatherFile, Analyzer.GatherFuncType.GatherConnection, value));
                             }
                         }
+
+                        proc.WaitForExit();
+
                         this.AddInfo(infos);
                     }
                 }
