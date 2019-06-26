@@ -244,7 +244,6 @@ namespace DrAnalyzer
                         }
                     }
                 }
-                
                 fs.Close();
             }
         }
