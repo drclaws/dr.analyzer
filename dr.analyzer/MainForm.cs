@@ -22,6 +22,7 @@ namespace DrAnalyzer
         private Mutex syncObj;
 
         public Analyzer.MessageConverter converter;
+        private Tree.TreeContainer treeContainer = new Tree.TreeContainer();
 
         private System.Windows.Forms.Timer timer;
 
@@ -32,6 +33,16 @@ namespace DrAnalyzer
         public MainForm()
         {
             InitializeComponent();
+
+            ImageList iconsList = new ImageList();
+            iconsList.Images.Add(Icon.ExtractAssociatedIcon(@"Icons\folder.ico"));
+            iconsList.Images.Add(Icon.ExtractAssociatedIcon(@"Icons\module.ico"));
+            iconsList.Images.Add(Icon.ExtractAssociatedIcon(@"Icons\file.ico"));
+
+            this.treeView1.ImageList = iconsList;
+            this.treeView1.ImageIndex = 0;
+            this.treeView1.SelectedImageIndex = 0;
+
             this.modulesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
             this.filesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
             this.addedList = new List<Analyzer.Info.IGatheredInfo>();
@@ -64,9 +75,11 @@ namespace DrAnalyzer
             else
             {
                 converter.ConnectByPid(Convert.ToInt32(this.pidTextBox.Text));
+
+                this.treeContainer.Clear();
+                this.treeView1.Nodes.Clear();
+
                 this.textBox1.Text = "";
-                this.listBox1.Items.Clear();
-                this.listBox2.Items.Clear();
                 this.filesList.Clear();
                 this.modulesList.Clear();
                 this.fileDirsList.Clear();
@@ -136,6 +149,7 @@ namespace DrAnalyzer
             this.syncObj.ReleaseMutex();
 
             string textlog = "";
+            bool isAdded = false;
             foreach(Analyzer.Info.IGatheredInfo info in infos)
             {
                 textlog += info.AsTextMessage() + "\r\n";
@@ -147,33 +161,52 @@ namespace DrAnalyzer
                 {
                     case Analyzer.GatherType.GatherFile:
                         {
-                            string name = info.Name.ToLower();
+                            string name = info.Name;
                             if (name.StartsWith(@"\\?\"))
                             {
                                 name = name.Remove(0, 4);
                             }
+                            name = System.IO.Path.GetFullPath(name).ToLower();
                             if (!this.filesList.ContainsKey(name))
                             {
+                                bool isFile;
                                 try
                                 {
                                     FileAttributes attrs = File.GetAttributes(name);
-                                    if (!attrs.HasFlag(FileAttributes.Directory))
-                                    {
-                                        this.filesList.Add(name, info);
-                                        this.listBox2.Items.Add(name);
-                                    }
+                                    isFile = !(attrs.HasFlag(FileAttributes.Directory) || attrs.HasFlag(FileAttributes.Temporary)); 
                                 } catch (Exception) { continue; }
-                                
+
+                                if (isFile)
+                                {
+                                    this.filesList.Add(name, info);
+                                    if (!this.modulesList.ContainsKey(name))
+                                    {
+                                        TreeNode newNode;
+                                        if ((newNode = this.treeContainer.AddPath(name, false)) != null)
+                                        {
+                                            this.treeView1.Nodes.Add(newNode);
+                                        }
+                                        isAdded = true;
+                                    }
+                                }
                             }
                         }
                         break;
                     case Analyzer.GatherType.GatherLibrary:
                         {
-                            string name = System.IO.Path.GetFullPath(info.Name.ToLower());
+                            string name = System.IO.Path.GetFullPath(info.Name).ToLower();
                             if (!this.modulesList.ContainsKey(name))
                             {
                                 this.modulesList.Add(name, info);
-                                this.listBox1.Items.Add(name);
+                                if (!this.filesList.ContainsKey(name))
+                                {
+                                    TreeNode newNode;
+                                    if ((newNode = this.treeContainer.AddPath(name, true)) != null)
+                                    {
+                                        this.treeView1.Nodes.Add(newNode);
+                                    }
+                                    isAdded = true;
+                                }
                             }
                         }
                         break;
@@ -189,6 +222,10 @@ namespace DrAnalyzer
                 }
             }
             this.textBox1.Text += textlog;
+            if (isAdded)
+            {
+                this.treeView1.Sort();
+            }
         }
 
         private void TextBox1_TextChanged(object sender, EventArgs e)
@@ -227,7 +264,7 @@ namespace DrAnalyzer
                 {
                     if (anyModules)
                     {
-                        fs.WriteLine("Modules' files:");
+                        fs.WriteLine("Modules:");
                         foreach (Analyzer.Info.IGatheredInfo module in this.modulesList.Values)
                         {
                             fs.WriteLine(module.Name);
@@ -237,14 +274,13 @@ namespace DrAnalyzer
 
                     if (anyFiles)
                     {
-                        fs.WriteLine("Ordinary files:");
+                        fs.WriteLine("Files:");
                         foreach (Analyzer.Info.IGatheredInfo file in this.filesList.Values)
                         {
                             fs.WriteLine(file.Name);
                         }
                     }
                 }
-                
                 fs.Close();
             }
         }
