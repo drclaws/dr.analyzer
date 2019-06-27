@@ -160,7 +160,6 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.startButton);
             this.Controls.Add(this.pidTextBox);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(680, 505);
             this.Name = "MainForm";
             this.Text = "DrAnalyzer";

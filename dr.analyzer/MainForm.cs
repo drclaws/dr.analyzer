@@ -33,6 +33,8 @@ namespace DrAnalyzer
         public MainForm()
         {
             InitializeComponent();
+            
+            this.Icon = (System.Drawing.Icon)Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             ImageList iconsList = new ImageList();
             iconsList.Images.Add(Icon.ExtractAssociatedIcon(@"Icons\folder.ico"));
