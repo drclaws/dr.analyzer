@@ -16,12 +16,13 @@ namespace DrAnalyzer.Tree
         public bool ViewNodeOwned { get; private set; } = false;
         public System.Windows.Forms.TreeNode TreeViewNode { get; private set; }
 
-        public TreeNode(Queue<string> pathElems, TreeNode parentNode = null)
+        public TreeNode(string name, Queue<string> pathElems, bool isModulePath, TreeNode parentNode)
         {
+            this.Name = name;
+            string nextName = pathElems.Dequeue();
             this.parentNode = parentNode;
-            this.Name = pathElems.Dequeue();
 
-            if (parentNode != null && !parentNode.ViewNodeOwned)
+            if (parentNode != null)
             {
                 if (parentNode.ViewNodeOwned)
                 {
@@ -39,35 +40,54 @@ namespace DrAnalyzer.Tree
                 this.TreeViewNode = new System.Windows.Forms.TreeNode(this.Name + @"\");
             }
 
-            if (pathElems.Count == 1)
+            if (pathElems.Count == 0)
             {
-                childrenElems.Add(new TreeElem(pathElems.Dequeue(), this));
+                childrenElems.Add(new TreeElem(nextName, isModulePath, this));
             }
             else
             {
-                childrenNodes.Add(new TreeNode(pathElems, this));
+                childrenNodes.Add(new TreeNode(nextName, pathElems, isModulePath, this));
             }
         }
 
-        public void AddFile(Queue<string> pathElems)
+        public TreeNode(string name, Queue<string> pathElems, bool isModulePath)
         {
-            string name = pathElems.Dequeue();
+            this.parentNode = null;
+            this.Name = name;
+            this.TreeViewNode = new System.Windows.Forms.TreeNode(name);
+            this.ViewNodeOwned = true;
+
+            string nextName = pathElems.Dequeue();
+            if (pathElems.Count == 0)
+            {
+                childrenElems.Add(new TreeElem(nextName, isModulePath, this));
+            }
+            else
+            {
+                childrenNodes.Add(new TreeNode(nextName, pathElems, isModulePath, this));
+            }
+
+        }
+
+        public void AddFile(Queue<string> pathElems, bool isModulePath)
+        {
+            string nextName = pathElems.Dequeue();
             if (pathElems.Count == 0)
             {
                 if (!this.ViewNodeOwned)
                 {
                     this.MakeNodeOwned();
                 }
-                childrenElems.Add(new TreeElem(name, this));
+                childrenElems.Add(new TreeElem(nextName, isModulePath, this));
             }
             else
             {
                 bool found = false;
                 foreach(TreeNode node in this.childrenNodes)
                 {
-                    if(node.Name == name)
+                    if(node.Name == nextName)
                     {
-                        node.AddFile(pathElems);
+                        node.AddFile(pathElems, isModulePath);
                         found = true;
                         break;
                     }
@@ -78,7 +98,7 @@ namespace DrAnalyzer.Tree
                     {
                         this.MakeNodeOwned();
                     }
-                    this.childrenNodes.Add(new TreeNode(pathElems, this));
+                    this.childrenNodes.Add(new TreeNode(nextName, pathElems, isModulePath, this));
                 }
             }
         }
@@ -86,6 +106,20 @@ namespace DrAnalyzer.Tree
         private void MakeNodeOwned()
         {
             string ownedPath = this.GetOwnedPath();
+
+            System.Windows.Forms.TreeNode 
+                childViewNode = this.TreeViewNode, 
+                parentViewNode = this.TreeViewNode.Parent;
+
+            parentViewNode.Nodes.Remove(childViewNode);
+            this.TreeViewNode = new System.Windows.Forms.TreeNode(ownedPath);
+            parentViewNode.Nodes.Add(this.TreeViewNode);
+            childViewNode.Text = childViewNode.Text.Remove(0, ownedPath.Length + 1);
+            this.TreeViewNode.Nodes.Add(childViewNode);
+
+            this.parentNode.UpdateParentNode(this.TreeViewNode);
+
+            /*
             if (this.TreeViewNode.Parent != null)
             {
                 System.Windows.Forms.TreeNode childViewNode = this.TreeViewNode,
@@ -103,7 +137,7 @@ namespace DrAnalyzer.Tree
                 this.TreeViewNode.Name = ownedPath;
                 this.TreeViewNode.Nodes.Add(newNode);
                 newNode.Name = "";
-            }
+            }*/
             this.ViewNodeOwned = true;
         }
 
@@ -119,22 +153,13 @@ namespace DrAnalyzer.Tree
             }
         }
         
-        public void UpdateNode(System.Windows.Forms.TreeNode newNode)
+        public void UpdateParentNode(System.Windows.Forms.TreeNode newNode)
         {
-            newNode.Name += this.Name + @"\";
-            this.TreeViewNode = newNode;
             if (!this.ViewNodeOwned)
             {
-                if (this.childrenNodes.Count != 0)
-                {
-                    this.childrenNodes[0].UpdateNode(newNode);
-                }
-                else
-                {
-                    this.childrenElems.First().UpdateNode(newNode);
-                }
+                this.TreeViewNode = newNode;
+                this.parentNode.UpdateParentNode(newNode);
             }
         }
-
     }
 }

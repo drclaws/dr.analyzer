@@ -10,22 +10,38 @@ namespace DrAnalyzer.Tree
     {
         private readonly List<TreeNode> childrenNodes = new List<TreeNode>();
 
-        public System.Windows.Forms.TreeNode AddPath(string filePath)
+        public System.Windows.Forms.TreeNode AddPath(string filePath, bool isModule)
         {
-            string currPath = filePath;
             List<string> FullPath = new List<string>();
-            FullPath.Insert(0, System.IO.Path.GetFileName(currPath));
-            currPath = System.IO.Path.GetPathRoot(currPath);
-            while (System.IO.Path.IsPathRooted(currPath))
+            FullPath.Insert(0, System.IO.Path.GetFileName(filePath));
+
+            System.IO.DirectoryInfo directory = System.IO.Directory.GetParent(filePath);
+            while (directory != null)
             {
-                FullPath.Insert(0, System.IO.Path.GetDirectoryName(currPath));
-                currPath = System.IO.Path.GetPathRoot(currPath);
+                FullPath.Insert(0, directory.Name);
+                directory = System.IO.Directory.GetParent(directory.FullName);
             }
             Queue<string> FullPathQueue = new Queue<string>(FullPath);
 
-            TreeNode treeNode = childrenNodes.Find(val => val.Name == FullPathQueue.First());
+            string rootName = FullPathQueue.Dequeue();
+            int treeNodeIndex = childrenNodes.FindIndex(val => val.Name == rootName);
             
-            if (treeNode = childrenNodes)
+            if (treeNodeIndex == -1)
+            {
+                TreeNode newNode = new TreeNode(rootName, FullPathQueue, isModule);
+                childrenNodes.Add(newNode);
+                return newNode.TreeViewNode;
+            }
+            else
+            {
+                this.childrenNodes[treeNodeIndex].AddFile(FullPathQueue, isModule);
+                return null;
+            }
+        }
+
+        public void Clear()
+        {
+            this.childrenNodes.Clear();
         }
     }
 }

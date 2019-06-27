@@ -11,8 +11,9 @@ namespace DrAnalyzer.Tree
         public readonly string Name;
         private readonly TreeNode parentNode;
         private System.Windows.Forms.TreeNode treeViewNode = null;
+        private readonly bool isModule;
 
-        public TreeElem(string name, TreeNode parentNode)
+        public TreeElem(string name, bool isModule, TreeNode parentNode)
         {
             this.Name = name;
             this.parentNode = parentNode;
@@ -26,13 +27,33 @@ namespace DrAnalyzer.Tree
                 this.treeViewNode = this.parentNode.TreeViewNode;
                 this.treeViewNode.Text += name;
             }
+            this.isModule = isModule;
+            if (isModule)
+            {
+                this.treeViewNode.ImageIndex = 1;
+                this.treeViewNode.SelectedImageIndex = 1;
+            }
+            else
+            {
+                this.treeViewNode.ImageIndex = 2;
+                this.treeViewNode.SelectedImageIndex = 2;
+            }
         }
 
         public void UpdateNode(System.Windows.Forms.TreeNode newNode)
         {
             this.treeViewNode = newNode;
             this.treeViewNode.Text += this.Name;
+            if (this.isModule)
+            {
+                this.treeViewNode.ImageIndex = 1;
+                this.treeViewNode.SelectedImageIndex = 1;
+            }
+            else
+            {
+                this.treeViewNode.ImageIndex = 2;
+                this.treeViewNode.SelectedImageIndex = 2;
+            }
         }
-
     }
 }
