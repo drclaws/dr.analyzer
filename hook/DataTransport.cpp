@@ -136,7 +136,7 @@ void DataTransport::SenderThreadFunc()
 			BuffObject* buff = this->buffQueue.front();
 
 			this->queueOperMutex.unlock();
-			
+
 			INT8* message = buff->ToMessage();
 
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);

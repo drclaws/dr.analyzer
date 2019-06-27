@@ -74,7 +74,7 @@ INT8* GatherInfo::ToMessageFormat()
 void GatherInfo::Print()
 {
 	if (this->name) {
-		std::wcout << this->type << " (" << this->funcCalled << "): " << this->name << std::endl;
+		std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << " " << this->name << std::endl;
 	}
 	else {
 		std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << std::endl;
@@ -120,7 +120,10 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
 
 	sizeGet = GetModuleFileNameW(libHmodule, filePath, size);
 
-	if (sizeGet != size) {
+	if (sizeGet == 0) {
+		return new GatherInfo(GatherType::GatherLibrary, funcCalled, GatherWarning::GatherCannotGetValue);
+	}
+	else if (sizeGet != size) {
 		sizeGet++;
 	}
 

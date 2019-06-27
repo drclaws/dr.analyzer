@@ -69,6 +69,28 @@ namespace DrAnalyzer.Tree
 
         }
 
+        public void MakeModuleByPath(Queue<string> pathElems)
+        {
+            string nextElem = pathElems.Dequeue();
+
+            if (pathElems.Count == 0)
+            {
+                int elemIndex = this.childrenElems.FindIndex(val => val.Name == nextElem);
+                if (elemIndex != -1)
+                {
+                    this.childrenElems[elemIndex].MakeModule();
+                }
+            }
+            else
+            {
+                int nodeIndex = this.childrenNodes.FindIndex(val => val.Name == nextElem);
+                if (nodeIndex != -1)
+                {
+                    this.childrenNodes[nodeIndex].MakeModuleByPath(pathElems);
+                }
+            }
+        }
+
         public void AddFile(Queue<string> pathElems, bool isModulePath)
         {
             string nextName = pathElems.Dequeue();

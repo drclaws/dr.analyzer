@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.pidTextBox = new System.Windows.Forms.TextBox();
             this.startButton = new System.Windows.Forms.Button();
             this.textBox1 = new System.Windows.Forms.TextBox();
@@ -47,16 +46,18 @@
             // 
             // pidTextBox
             // 
-            this.pidTextBox.Location = new System.Drawing.Point(94, 9);
+            this.pidTextBox.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.pidTextBox.Location = new System.Drawing.Point(122, 9);
             this.pidTextBox.Name = "pidTextBox";
-            this.pidTextBox.Size = new System.Drawing.Size(90, 20);
+            this.pidTextBox.Size = new System.Drawing.Size(90, 26);
             this.pidTextBox.TabIndex = 5;
             // 
             // startButton
             // 
-            this.startButton.Location = new System.Drawing.Point(199, 7);
+            this.startButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.startButton.Location = new System.Drawing.Point(239, 6);
             this.startButton.Name = "startButton";
-            this.startButton.Size = new System.Drawing.Size(75, 23);
+            this.startButton.Size = new System.Drawing.Size(83, 32);
             this.startButton.TabIndex = 6;
             this.startButton.Text = "Start";
             this.startButton.UseVisualStyleBackColor = true;
@@ -67,12 +68,13 @@
             this.textBox1.BackColor = System.Drawing.SystemColors.Window;
             this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.textBox1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.textBox1.Location = new System.Drawing.Point(0, 0);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ReadOnly = true;
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox1.Size = new System.Drawing.Size(307, 582);
+            this.textBox1.Size = new System.Drawing.Size(307, 568);
             this.textBox1.TabIndex = 7;
             this.textBox1.WordWrap = false;
             this.textBox1.TextChanged += new System.EventHandler(this.TextBox1_TextChanged);
@@ -80,9 +82,10 @@
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.label1.Location = new System.Drawing.Point(25, 12);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(62, 13);
+            this.label1.Size = new System.Drawing.Size(91, 20);
             this.label1.TabIndex = 8;
             this.label1.Text = "Process ID:";
             // 
@@ -90,19 +93,20 @@
             // 
             this.treeView1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.treeView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.treeView1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.treeView1.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.treeView1.Location = new System.Drawing.Point(0, 0);
             this.treeView1.Name = "treeView1";
-            this.treeView1.Size = new System.Drawing.Size(459, 582);
+            this.treeView1.Size = new System.Drawing.Size(459, 568);
             this.treeView1.TabIndex = 1;
             // 
             // saveButton
             // 
             this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.saveButton.Enabled = false;
-            this.saveButton.Location = new System.Drawing.Point(705, 7);
+            this.saveButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.saveButton.Location = new System.Drawing.Point(699, 8);
             this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(75, 23);
+            this.saveButton.Size = new System.Drawing.Size(75, 28);
             this.saveButton.TabIndex = 17;
             this.saveButton.Text = "Save";
             this.saveButton.UseVisualStyleBackColor = true;
@@ -111,9 +115,10 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(300, 12);
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.label6.Location = new System.Drawing.Point(355, 12);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(96, 13);
+            this.label6.Size = new System.Drawing.Size(144, 20);
             this.label6.TabIndex = 19;
             this.label6.Text = "Handle App Status";
             // 
@@ -123,9 +128,9 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.panel2.Controls.Add(this.splitContainer2);
-            this.panel2.Location = new System.Drawing.Point(12, 36);
+            this.panel2.Location = new System.Drawing.Point(12, 50);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(782, 586);
+            this.panel2.Size = new System.Drawing.Size(782, 572);
             this.panel2.TabIndex = 20;
             // 
             // splitContainer2
@@ -144,7 +149,7 @@
             // 
             this.splitContainer2.Panel2.Controls.Add(this.textBox1);
             this.splitContainer2.Panel2MinSize = 150;
-            this.splitContainer2.Size = new System.Drawing.Size(782, 586);
+            this.splitContainer2.Size = new System.Drawing.Size(782, 572);
             this.splitContainer2.SplitterDistance = 463;
             this.splitContainer2.SplitterWidth = 8;
             this.splitContainer2.TabIndex = 0;

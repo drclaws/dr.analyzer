@@ -200,7 +200,11 @@ namespace DrAnalyzer
                             if (!this.modulesList.ContainsKey(name))
                             {
                                 this.modulesList.Add(name, info);
-                                if (!this.filesList.ContainsKey(name))
+                                if (this.filesList.ContainsKey(name))
+                                {
+                                    this.treeContainer.MakeModuleByPath(name);
+                                }
+                                else
                                 {
                                     TreeNode newNode;
                                     if ((newNode = this.treeContainer.AddPath(name, true)) != null)
