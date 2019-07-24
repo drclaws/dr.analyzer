@@ -3,6 +3,8 @@ This software allows you to analyze your program to know which files and librari
 
 The analyzer is for 64-bit only including your analyzed program but in future it will support 32-bit systems and programs.
 
+Also it only supports single-process programs for now.
+
 ## Requirements
 
   + [Detours](https://github.com/microsoft/detours) – detouring library developed by Microsoft
