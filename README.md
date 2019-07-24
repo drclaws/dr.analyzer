@@ -1,5 +1,5 @@
 # Dr. Analyzer
-This software allows you to analyze your program to know which files and libraries it uses. The using method is detouring selected windows api calls of your program's process.
+This software allows you to analyze your program to know which files and libraries it uses. The using method is detouring selected windows api methods of your program's process.
 
 The analyzer is for 64-bit only including your analyzed program but in future it will support 32-bit systems and programs.
 
