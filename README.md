@@ -9,7 +9,7 @@ Also it only supports single-process programs for now.
 
   + [Detours](https://github.com/microsoft/detours) – detouring library developed by Microsoft
   + [Handle](https://docs.microsoft.com/en-us/sysinternals/downloads/handle) (optionally) – used in project for getting list of opened files on analyze start
-  + Visual C++ Build Toolchain 2017
+  + Visual Studio 2017
   + .Net Framework 4.6.2
 
 ## Building and using
