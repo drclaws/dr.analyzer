@@ -179,24 +179,11 @@ HMODULE WINAPI NewLoadLibraryExW(
 pExitProcess OrigExitProcess = NULL;
 
 void WINAPI NewExitProcess(UINT uExitCode) {
-	if (waiterThread != NULL) {
-		TerminateThread(waiterThread, 0);
-		CloseHandle(waiterThread);
-		waiterThread = NULL;
-	}
+	WaitForSingleObject(freeLibSemaphore, 0);
 
-	if (waiterSemaphore != NULL) {
-		CloseHandle(waiterSemaphore);
-		waiterSemaphore = NULL;
-	}
+	ReleaseSemaphore(waiterSemaphore, 1, NULL);
 
-	gatherer->SetDisconnect();
-
-	if (gatherThread != NULL) {
-		WaitForSingleObject(gatherThread, INFINITE);
-		CloseHandle(gatherThread);
-		gatherThread = NULL;
-	}
+	WaitForSingleObject(waiterThread, INFINITE);
 
 	OrigExitProcess(uExitCode);
 }

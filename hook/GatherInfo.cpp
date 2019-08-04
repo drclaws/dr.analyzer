@@ -103,8 +103,8 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 		sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet - (DWORD)1, FILE_NAME_NORMALIZED);
 	}
 	else {
-		filePathRes = new WCHAR[sizeGet + 1];
-		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * (sizeGet + 1));
+		filePathRes = new WCHAR[sizeGet + 1Ui64];
+		std::memcpy(filePathRes, filePath, sizeof(WCHAR) * (sizeGet + 1Ui64));
 	}
 
 	return new GatherInfo(GatherType::GatherFile, funcCalled, filePathRes, sizeGet);

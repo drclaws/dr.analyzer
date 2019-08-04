@@ -41,22 +41,19 @@ void Gatherer::TransferThreadFunc() {
 		this->dataTransport = new DataTransport();
 	}
 	catch (std::exception) {
-		TerminateThread(waiterThread, 0);
-		CloseHandle(waiterThread);
-		FreeLibraryAndExitThread(libHModule, 0);
+		ReleaseSemaphore(waiterSemaphore, 1, NULL);
+		return;
 	}
-
-	this->AddLoadedResToBuff();
 
 	bool detoured = this->DetourFuncs();
 	if (!detoured) {
-		TerminateThread(waiterThread, 0);
-		CloseHandle(waiterThread);
+		ReleaseSemaphore(waiterSemaphore, 1, NULL);
 		this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
 		this->isDisconnecting = true;
 		delete this->dataTransport;
-		FreeLibraryAndExitThread(libHModule, 0);
+		return;
 	}
+	std::thread getLoadedResThread(&Gatherer::AddLoadedResToBuff, this);
 
 	while (true) {
 		// Wait for buff input
@@ -91,6 +88,7 @@ void Gatherer::TransferThreadFunc() {
 			break;
 		}
 	}
+	getLoadedResThread.join();
 	delete this->dataTransport;
 }
 

@@ -17,35 +17,42 @@ DWORD WINAPI GatherThreadFunc(LPVOID) {
 	ExitThread(0);
 }
 
-DWORD WINAPI WaiterForCloseFunc(LPVOID) {
-	if ((gatherThread = CreateThread(NULL, 0, &GatherThreadFunc, NULL, 0, NULL)) == NULL) {
-		FreeLibraryAndExitThread(libHModule, 1);
-	}
-
-	std::wstring waiterSemaphoreName = L"Global\\dr_analyzer_waiter_semaphore_" + std::to_wstring(GetCurrentProcessId());
-	HANDLE waiterSemaphore = OpenSemaphoreW(
-		SEMAPHORE_ALL_ACCESS,
-		FALSE,
-		waiterSemaphoreName.c_str()
-	);
-
-	if (waiterSemaphore != NULL) {
-		WaitForSingleObject(waiterSemaphore, INFINITE);
-		CloseHandle(waiterSemaphore);
+inline void CloseWaiter(int errCode) {
+	if (WaitForSingleObject(freeLibSemaphore, 0) == WAIT_OBJECT_0) {
+		FreeLibraryAndExitThread(libHModule, errCode);
 	}
 	else {
-		gatherer->AddToBuff(new GatherInfo(GatherType::GatherWaiterError, GatherFuncType::GatherWaiter));
+		ExitThread(errCode);
 	}
+}
 
-	gatherer->SetDisconnect();
+DWORD WINAPI WaiterForCloseFunc(LPVOID) {
+	HANDLE gatherThread = CreateThread(NULL, 0, &GatherThreadFunc, NULL, 0, NULL);
 
-	if (gatherThread != NULL) {
+	if (gatherThread == NULL) {
+		CloseWaiter(1);
+	}
+	else {
+		WaitForSingleObject(waiterSemaphore, INFINITE);
+
+		gatherer->SetDisconnect();
+
 		WaitForSingleObject(gatherThread, INFINITE);
 		CloseHandle(gatherThread);
-		gatherThread = NULL;
+		CloseWaiter(0);
 	}
+}
 
-	FreeLibraryAndExitThread(libHModule, 0);
+inline void UndetourExitProcess() {
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
+	DetourTransactionCommit();
+}
+
+inline void CloseSemaphores() {
+	CloseHandle(waiterSemaphore);
+	CloseHandle(freeLibSemaphore);
 }
 
 
@@ -63,27 +70,36 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (!GetOrigAddresses()) {
 			return FALSE;
 		}
+
+		std::wstring waiterSemaphoreName = L"Global\\dr_analyzer_waiter_semaphore_" + std::to_wstring(GetCurrentProcessId());
+		if ((waiterSemaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS, FALSE, waiterSemaphoreName.c_str())) == NULL) {
+			return FALSE;
+		}
+
+		if ((freeLibSemaphore = CreateSemaphoreW(NULL, 1, 1, NULL)) == NULL) {
+			CloseHandle(waiterSemaphore);
+			return FALSE;
+		}
+
 		DetourTransactionBegin();
 		DetourUpdateThread(GetCurrentThread());
 		DetourAttach(&(PVOID&)OrigExitProcess, NewExitProcess);
 		if (DetourTransactionCommit() != NO_ERROR) {
+			CloseSemaphores();
 			return FALSE;
 		}
 		gatherer = new Gatherer();
 		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-			DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
-			DetourTransactionCommit();
+			delete gatherer;
+			UndetourExitProcess();
+			CloseSemaphores();
 			return FALSE;
 		}
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
 		delete gatherer;
-		DetourTransactionBegin();
-		DetourUpdateThread(GetCurrentThread());
-		DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
-		DetourTransactionCommit();
+		UndetourExitProcess();
+		CloseSemaphores();
 	}
 
     return TRUE;

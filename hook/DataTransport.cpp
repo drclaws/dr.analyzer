@@ -103,16 +103,13 @@ DataTransport::~DataTransport()
 
 void DataTransport::SendData(BuffObject* info)
 {
-	this->queueOperMutex.lock();
+	std::unique_lock<std::mutex> operationLock(this->queueOperMutex);
 	if (this->isDisconnecting) {
-		this->queueOperMutex.unlock();
 		return;
 	}
 
 	this->buffQueue.push(info);
 	this->queueOperEndedCV.notify_one();
-
-	this->queueOperMutex.unlock();
 }
 
 

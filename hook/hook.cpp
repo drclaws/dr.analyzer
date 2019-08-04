@@ -11,10 +11,12 @@
 
 
 HMODULE libHModule = NULL;
-HANDLE gatherThread = NULL;
 
 HANDLE waiterThread = NULL;
 HANDLE waiterSemaphore = NULL;
+
+HANDLE freeLibSemaphore = NULL;
+
 
 void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {
