@@ -1,5 +1,4 @@
-﻿// dllmain.cpp : Определяет точку входа для приложения DLL.
-#include "stdafx.h"
+﻿#include "stdafx.h"
 
 #include <detours.h>
 #include <string>
@@ -43,13 +42,6 @@ DWORD WINAPI WaiterForCloseFunc(LPVOID) {
 	}
 }
 
-inline void UndetourExitProcess() {
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-	DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
-	DetourTransactionCommit();
-}
-
 inline void CloseSemaphores() {
 	CloseHandle(waiterSemaphore);
 	CloseHandle(freeLibSemaphore);
@@ -81,10 +73,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			return FALSE;
 		}
 
-		DetourTransactionBegin();
-		DetourUpdateThread(GetCurrentThread());
-		DetourAttach(&(PVOID&)OrigExitProcess, NewExitProcess);
-		if (DetourTransactionCommit() != NO_ERROR) {
+		if (!DetourExitProcess()) {
 			CloseSemaphores();
 			return FALSE;
 		}
@@ -97,7 +86,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		}
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
-		delete gatherer;
+	    if (gatherer != NULL) {
+		    delete gatherer;
+		}
 		UndetourExitProcess();
 		CloseSemaphores();
 	}

@@ -6,14 +6,58 @@
 #include "hook.h"
 #include "flags.h"
 #include "Gatherer.h"
+#include "GatherInfo.h"
 
-#include <iostream>
 #include <stdio.h>
+
+
+typedef HANDLE(WINAPI *pCreateFile2)(
+	LPCWSTR                           lpFileName,
+	DWORD                             dwDesiredAccess,
+	DWORD                             dwShareMode,
+	DWORD                             dwCreationDisposition,
+	LPCREATEFILE2_EXTENDED_PARAMETERS pCreateExParams
+	);
+typedef HANDLE(WINAPI *pCreateFileA)(
+	LPCSTR                lpFileName,
+	DWORD                 dwDesiredAccess,
+	DWORD                 dwShareMode,
+	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD                 dwCreationDisposition,
+	DWORD                 dwFlagsAndAttributes,
+	HANDLE                hTemplateFile
+	);
+typedef HANDLE(WINAPI *pCreateFileW)(
+	LPCWSTR               lpFileName,
+	DWORD                 dwDesiredAccess,
+	DWORD                 dwShareMode,
+	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD                 dwCreationDisposition,
+	DWORD                 dwFlagsAndAttributes,
+	HANDLE                hTemplateFile
+	);
+typedef HANDLE(WINAPI *pOpenFileById)(
+	HANDLE                hVolumeHint,
+	LPFILE_ID_DESCRIPTOR  lpFileId,
+	DWORD                 dwDesiredAccess,
+	DWORD                 dwShareMode,
+	LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD                 dwFlagsAndAttributes
+	);
 
 pCreateFile2  OrigCreateFile2 = NULL;
 pCreateFileA  OrigCreateFileA = NULL;
 pCreateFileW  OrigCreateFileW = NULL;
 pOpenFileById OrigOpenFileById = NULL;
+
+
+inline void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
+{
+    GatherInfo* tmpInfo = FileHandleToInfoObject(fileHandle, funcCalled);
+    if (tmpInfo != NULL) {
+	    gatherer->AddToBuff(FileHandleToInfoObject(fileHandle, funcCalled));
+    }
+}
 
 HANDLE WINAPI NewCreateFile2(
 	LPCWSTR                           lpFileName,
@@ -110,11 +154,36 @@ HANDLE WINAPI NewOpenFileById(
 }
 
 
+typedef HMODULE(WINAPI *pLoadLibraryA)(
+	LPCSTR lpLibFileName
+	);
+typedef HMODULE(WINAPI *pLoadLibraryW)(
+	LPCWSTR lpLibFileName
+	);
+typedef HMODULE(WINAPI *pLoadLibraryExA)(
+	LPCSTR lpLibFileName,
+	HANDLE hFile,
+	DWORD  dwFlags
+	);
+typedef HMODULE(WINAPI *pLoadLibraryExW)(
+	LPCWSTR lpLibFileName,
+	HANDLE  hFile,
+	DWORD   dwFlags
+	);
 
 pLoadLibraryA OrigLoadLibraryA = NULL;
 pLoadLibraryW OrigLoadLibraryW = NULL;
 pLoadLibraryExA OrigLoadLibraryExA = NULL;
 pLoadLibraryExW OrigLoadLibraryExW = NULL;
+
+
+inline void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled)
+{
+    GatherInfo* tmpInfo = LibraryHmoduleToInfoObject(libHmodule, funcCalled);
+    if (tmpInfo != NULL) {
+        gatherer->AddToBuff(LibraryHmoduleToInfoObject(libHmodule, funcCalled));
+    }
+}
 
 HMODULE WINAPI NewLoadLibraryA(
 	LPCSTR lpLibFileName
@@ -175,6 +244,9 @@ HMODULE WINAPI NewLoadLibraryExW(
 }
 
 
+typedef void(WINAPI *pExitProcess) (
+	UINT ExitProcess
+	);
 
 pExitProcess OrigExitProcess = NULL;
 
@@ -188,39 +260,153 @@ void WINAPI NewExitProcess(UINT uExitCode) {
 	OrigExitProcess(uExitCode);
 }
 
-
-
-BOOL GetOrigAddresses()
+bool GetOrigAddresses()
 {
 	if ((OrigCreateFile2 = (pCreateFile2)DetourFindFunction("kernel32.dll", "CreateFile2")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigCreateFileA = (pCreateFileA)DetourFindFunction("kernel32.dll", "CreateFileA")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigCreateFileW = (pCreateFileW)DetourFindFunction("kernel32.dll", "CreateFileW")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigOpenFileById = (pOpenFileById)DetourFindFunction("kernel32.dll", "OpenFileById")) == NULL) {
-		return FALSE;
+		return false;
 	}
 
 	if ((OrigLoadLibraryA = (pLoadLibraryA)DetourFindFunction("kernel32.dll", "LoadLibraryA")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigLoadLibraryW = (pLoadLibraryW)DetourFindFunction("kernel32.dll", "LoadLibraryW")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigLoadLibraryExA = (pLoadLibraryExA)DetourFindFunction("kernel32.dll", "LoadLibraryExA")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	if ((OrigLoadLibraryExW = (pLoadLibraryExW)DetourFindFunction("kernel32.dll", "LoadLibraryExW")) == NULL) {
-		return FALSE;
+		return false;
 	}
 	
 	if ((OrigExitProcess = (pExitProcess)DetourFindFunction("kernel32.dll", "ExitProcess")) == NULL) {
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
+}
+
+bool DetourExitProcess() {
+    DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(PVOID&)OrigExitProcess, NewExitProcess);
+	return DetourTransactionCommit() == NO_ERROR;
+}
+
+void UndetourExitProcess() {
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach(&(PVOID&)OrigExitProcess, NewExitProcess);
+    DetourTransactionCommit();
+}
+
+bool DetourFuncs() {
+    if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourAttach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourAttach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourTransactionCommit() != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	return true;
+}
+
+bool UndetourFuncs() {
+    if (DetourTransactionBegin() != NO_ERROR) {
+		return false;
+	}
+	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourDetach(&(PVOID&)OrigCreateFile2, NewCreateFile2) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigCreateFileA, NewCreateFileA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigCreateFileW, NewCreateFileW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigOpenFileById, NewOpenFileById) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryA, NewLoadLibraryA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryW, NewLoadLibraryW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryExA, NewLoadLibraryExA) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+	if (DetourDetach(&(PVOID&)OrigLoadLibraryExW, NewLoadLibraryExW) != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	if (DetourTransactionCommit() != NO_ERROR) {
+		DetourTransactionAbort();
+		return false;
+	}
+
+	return true;
 }

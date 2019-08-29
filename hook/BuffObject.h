@@ -22,8 +22,6 @@ public:
 	INT8* ToMessage();
 	buff_size_t MessageSize();
 
-	void Print();
-
 private:
 	INT32 length = 0;
 	buff_size_t size = 0;

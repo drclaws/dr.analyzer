@@ -2,8 +2,6 @@
 
 #include "flags.h"
 
-#include <iostream>
-
 typedef UINT32 buff_size_t;
 
 
@@ -27,8 +25,6 @@ public:
 	
 	buff_size_t GetSize();
 	INT8* ToMessageFormat();
-
-	void Print();
 
 private:
 	gather_flag_t type;

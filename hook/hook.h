@@ -1,6 +1,8 @@
 #pragma once
 #include "stdafx.h"
 
+#include "BuffObject.h"
+#include "DataTransport.h"
 #include "flags.h"
 
 
@@ -11,6 +13,4 @@ extern HANDLE waiterSemaphore;
 
 extern HANDLE freeLibSemaphore;
 
-void GatherFileInfo(HANDLE fileName, gather_flag_t funcCalled);
-
-void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled);
+void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff);

@@ -71,16 +71,6 @@ INT8* GatherInfo::ToMessageFormat()
 	return buff;
 }
 
-void GatherInfo::Print()
-{
-	if (this->name) {
-		std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << " " << this->name << std::endl;
-	}
-	else {
-		std::wcout << this->type << " (" << this->funcCalled << "): " << this->nameLength << std::endl;
-	}
-}
-
 GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 {
 	const DWORD size = 255;
@@ -92,7 +82,7 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePath, size, FILE_NAME_NORMALIZED);
 
 	if (sizeGet == 0) {
-		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherCannotGetValue);
+		return NULL;
 	}
 	if (sizeGet > MAX_NAME_LENGTH) {
 		return new GatherInfo(GatherType::GatherFile, funcCalled, GatherWarning::GatherNameTooBig);
@@ -112,7 +102,7 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 
 GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCalled)
 {
-	const DWORD size = 512;
+	const DWORD size = 1024;
 	WCHAR filePath[size];
 
 	DWORD sizeGet;
@@ -121,7 +111,7 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
 	sizeGet = GetModuleFileNameW(libHmodule, filePath, size);
 
 	if (sizeGet == 0) {
-		return new GatherInfo(GatherType::GatherLibrary, funcCalled, GatherWarning::GatherCannotGetValue);
+		return NULL;
 	}
 	else if (sizeGet != size) {
 		sizeGet++;

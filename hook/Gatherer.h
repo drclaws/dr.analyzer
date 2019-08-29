@@ -42,9 +42,6 @@ private:
 	BuffObject* buffObj = NULL;
 
 	void AddLoadedResToBuff();
-
-	bool DetourFuncs();
-	bool UndetourFuncs();
 };
 
 
