@@ -53,6 +53,8 @@ void Gatherer::TransferThreadFunc() {
 		ReleaseSemaphore(waiterSemaphore, 1, NULL);
 		this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
 		this->isDisconnecting = true;
+		this->dataTransport->SendData(this->buffObj);
+		this->buffObj = NULL;
 		delete this->dataTransport;
 		this->dataTransport = NULL;
 		return;
@@ -66,7 +68,7 @@ void Gatherer::TransferThreadFunc() {
 		}
 		else if (detoured) {
 			if (!UndetourFuncs()) {
-				this->AddToBuff(new GatherInfo(GatherType::GatherDetourError, GatherFuncType::GatherBufferSender));
+				this->AddToBuff(new GatherInfo(GatherType::GatherUndetourError, GatherFuncType::GatherBufferSender));
 			}
 			detoured = false;
 		}
@@ -133,14 +135,23 @@ void Gatherer::SetDisconnect()
 }
 
 void Gatherer::AddLoadedResToBuff() {
-	const DWORD modulesLength = 500;
+	DWORD modulesLength = 1023;
 	DWORD modulesSizeNeeded, modulesAmount;
 	
-	HMODULE hModules[modulesLength];
+	HMODULE *hModules = new HMODULE[modulesLength];
 	BuffObject *buffObj = new BuffObject();
 	GatherInfo* tmpInfo;
-    
-	if (EnumProcessModules(GetCurrentProcess(), hModules, sizeof(hModules), &modulesSizeNeeded)) {
+	
+	BOOL status;
+	
+    while((status = EnumProcessModules(GetCurrentProcess(), hModules, sizeof(HMODULE) * modulesLength, &modulesSizeNeeded)) == TRUE
+        && modulesSizeNeeded > (sizeof(HMODULE) * modulesLength))
+    {
+        delete[] hModules;
+        modulesLength = modulesSizeNeeded / sizeof(HMODULE);
+        hModules = new HMODULE[modulesLength];
+    }
+	if (status == TRUE) {
 		for (unsigned int i = 0; i < (modulesAmount = modulesSizeNeeded / sizeof(HMODULE)); i++) {
 			tmpInfo = LibraryHmoduleToInfoObject(hModules[i], GatherFuncType::GatherFilesOnLoad);
 			if (tmpInfo == NULL) {
@@ -154,8 +165,9 @@ void Gatherer::AddLoadedResToBuff() {
 		}
 	}
 	else {
-	    // TODO add message "Can't get loaded modules"
+	    buffObj->AddInfo(new GatherInfo(GatherType::GatherLibrariesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad));
 	}
+    delete[] hModules;
     
     SearchFileHandles(this->dataTransport, &buffObj);
     

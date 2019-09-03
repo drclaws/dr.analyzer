@@ -22,7 +22,7 @@ private:
 	bool isDisconnecting = false;
 
 	HANDLE transportMapping = NULL;
-	INT8* transportView = NULL;
+	PBYTE transportView = NULL;
 	HANDLE transportMutex = NULL;
 	HANDLE transportSemaphore = NULL;
 

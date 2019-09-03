@@ -10,15 +10,16 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
 using System.Text.RegularExpressions;
+using DrAnalyzer.Analyzer;
 
 namespace DrAnalyzer
 {
     public partial class MainForm : Form
     {
-        private List<Analyzer.Info.IGatheredInfo> addedList;
-        private Dictionary<string, Analyzer.Info.IGatheredInfo> modulesList;
-        private Dictionary<string, Analyzer.Info.IGatheredInfo> filesList;
-        private List<string> fileDirsList;
+        private List<Analyzer.Info.GatheredInfo> addedList;
+        private Dictionary<string, Analyzer.Info.GatheredInfo> modulesList;
+        private Dictionary<string, Analyzer.Info.GatheredInfo> filesList;
+        private readonly List<string> fileDirsList;
         private Mutex syncObj;
 
         public Analyzer.MessageConverter converter;
@@ -27,8 +28,6 @@ namespace DrAnalyzer
         private System.Windows.Forms.Timer timer;
 
         private bool started = false;
-
-        private string handlePath = String.Empty;
 
         public MainForm()
         {
@@ -45,26 +44,15 @@ namespace DrAnalyzer
             this.treeView1.ImageIndex = 0;
             this.treeView1.SelectedImageIndex = 0;
 
-            this.modulesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
-            this.filesList = new Dictionary<string, Analyzer.Info.IGatheredInfo>();
-            this.addedList = new List<Analyzer.Info.IGatheredInfo>();
+            this.modulesList = new Dictionary<string, Analyzer.Info.GatheredInfo>();
+            this.filesList = new Dictionary<string, Analyzer.Info.GatheredInfo>();
+            this.addedList = new List<Analyzer.Info.GatheredInfo>();
             this.fileDirsList = new List<string>();
             this.syncObj = new Mutex();
             this.timer = new System.Windows.Forms.Timer { Interval = 300 };
             this.timer.Tick += new EventHandler(this.TimerFunc);
 
             this.converter = new Analyzer.MessageConverter(this);
-
-            string handlePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\handle64.exe";
-            if (File.Exists(handlePath))
-            {
-                this.handlePath = handlePath;
-                this.label6.Text = "Handle found";
-            }
-            else
-            {
-                this.label6.Text = "Handle not found";
-            }
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -89,52 +77,20 @@ namespace DrAnalyzer
                 this.pidTextBox.ReadOnly = true;
                 this.started = true;
 
-                if (handlePath != String.Empty)
-                {
-                    using (var proc = new System.Diagnostics.Process {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = this.handlePath,
-                            Arguments = String.Format("-p {0} -nobanner", this.pidTextBox.Text),
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true
-                        }}) {
-
-                        proc.Start();
-
-                        List<Analyzer.Info.IGatheredInfo> infos = new List<Analyzer.Info.IGatheredInfo>();
-                        Regex re = new Regex(@"(?<=[ ]*[0-9A-F]+: File[ \t]+[\(].+[\)][ \t]+)\b.+");
-                        while (!proc.StandardOutput.EndOfStream)
-                        {
-                            string line = proc.StandardOutput.ReadLine();
-                            string value = re.Match(line).Value;
-                            if (value != String.Empty && System.IO.Path.GetFileName(value) != String.Empty)
-                            {
-                                infos.Add(new Analyzer.Info.GatheredResource(Analyzer.GatherType.GatherFile, Analyzer.GatherFuncType.GatherConnection, value));
-                            }
-                        }
-
-                        proc.WaitForExit();
-
-                        this.AddInfo(infos);
-                    }
-                }
-
                 this.timer.Start();
 
                 this.saveButton.Enabled = true;
             }
         }
         
-        public void AddInfo(List<Analyzer.Info.IGatheredInfo> info)
+        public void AddInfo(List<Analyzer.Info.GatheredInfo> info)
         {
             this.syncObj.WaitOne();
             this.addedList.AddRange(info);
             this.syncObj.ReleaseMutex();
         }
 
-        public void TimerFunc(Object myObject, EventArgs myEventArgs)
+        private void TimerFunc(Object myObject, EventArgs myEventArgs)
         {
             this.syncObj.WaitOne();
 
@@ -144,7 +100,7 @@ namespace DrAnalyzer
                 return;
             }
 
-            Analyzer.Info.IGatheredInfo[] infos = this.addedList.ToArray();
+            Analyzer.Info.GatheredInfo[] infos = this.addedList.ToArray();
 
             this.addedList.Clear();
 
@@ -152,51 +108,52 @@ namespace DrAnalyzer
 
             string textlog = "";
             bool isAdded = false;
-            foreach(Analyzer.Info.IGatheredInfo info in infos)
+            foreach(Analyzer.Info.GatheredInfo info in infos)
             {
                 textlog += info.AsTextMessage() + "\r\n";
-                if (info is Analyzer.Info.GatheredWarning)
-                {
-                    continue;
-                }
-                switch(info.Type)
-                {
-                    case Analyzer.GatherType.GatherFile:
-                        {
-                            string name = info.Name;
-                            if (name.StartsWith(@"\\?\"))
-                            {
-                                name = name.Remove(0, 4);
-                            }
-                            name = System.IO.Path.GetFullPath(name).ToLower();
-                            if (!this.filesList.ContainsKey(name))
-                            {
-                                bool isFile;
-                                try
-                                {
-                                    FileAttributes attrs = File.GetAttributes(name);
-                                    isFile = !(attrs.HasFlag(FileAttributes.Directory) || attrs.HasFlag(FileAttributes.Temporary)); 
-                                } catch (Exception) { continue; }
 
-                                if (isFile)
+                Type objType = info.GetType();
+                
+                if (objType == typeof(Analyzer.Info.GatheredResource) ||
+                    objType.IsSubclassOf(typeof(Analyzer.Info.GatheredResource)))
+                {
+                    string name;
+                    switch(info.Type)
+                    {
+                        case Analyzer.GatherType.GatherFile:
+                            name = info.Description;
+                                if (name.StartsWith(@"\\?\"))
                                 {
-                                    this.filesList.Add(name, info);
-                                    if (!this.modulesList.ContainsKey(name))
+                                    name = name.Remove(0, 4);
+                                }
+                                name = System.IO.Path.GetFullPath(name).ToLower();
+                                if (!this.filesList.ContainsKey(name))
+                                {
+                                    bool isFile;
+                                    try
                                     {
-                                        TreeNode newNode;
-                                        if ((newNode = this.treeContainer.AddPath(name, false)) != null)
+                                        FileAttributes attrs = File.GetAttributes(name);
+                                        isFile = !(attrs.HasFlag(FileAttributes.Directory) || attrs.HasFlag(FileAttributes.Temporary)); 
+                                    } catch (Exception) { continue; }
+
+                                    if (isFile)
+                                    {
+                                        this.filesList.Add(name, info);
+                                        if (!this.modulesList.ContainsKey(name))
                                         {
-                                            this.treeView1.Nodes.Add(newNode);
+                                            TreeNode newNode;
+                                            if ((newNode = this.treeContainer.AddPath(name, false)) != null)
+                                            {
+                                                this.treeView1.Nodes.Add(newNode);
+                                            }
+                                            isAdded = true;
                                         }
-                                        isAdded = true;
                                     }
                                 }
-                            }
-                        }
-                        break;
-                    case Analyzer.GatherType.GatherLibrary:
-                        {
-                            string name = System.IO.Path.GetFullPath(info.Name).ToLower();
+                            break;
+                        
+                        case Analyzer.GatherType.GatherLibrary:
+                            name = System.IO.Path.GetFullPath(info.Description).ToLower();
                             if (!this.modulesList.ContainsKey(name))
                             {
                                 this.modulesList.Add(name, info);
@@ -214,17 +171,18 @@ namespace DrAnalyzer
                                     isAdded = true;
                                 }
                             }
-                        }
-                        break;
-                    case Analyzer.GatherType.GatherDeactivated:
-                        this.timer.Stop();
-                        this.startButton.Text = "Start";
-                        this.pidTextBox.ReadOnly = false;
-                        this.started = false;
-                        this.startButton.Enabled = true;
-                        break;
-                    default:
-                        break;
+                            break;
+                    }
+                }
+                else if (objType == typeof(Analyzer.Info.NotGatheredError) ||
+                         info.Type.HasFlag(GatherType.GatherStopped))
+                {
+                    this.timer.Stop();
+                    this.startButton.Text = "Start";
+                    this.pidTextBox.ReadOnly = false;
+                    this.started = false;
+                    this.startButton.Enabled = true;
+                    break;
                 }
             }
             this.textBox1.Text += textlog;
@@ -251,44 +209,48 @@ namespace DrAnalyzer
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            SaveFileDialog saveFileDialog1 = new SaveFileDialog();
-            saveFileDialog1.Filter = "Text file|*.txt|All Files|*";
-            saveFileDialog1.Title = "Save an files list";
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog
+            {
+                Filter = "Text file|*.txt|All Files|*",
+                Title = "Save an files list"
+            };
             saveFileDialog1.ShowDialog();
 
-            if(saveFileDialog1.FileName != "")
+            if (saveFileDialog1.FileName == "")
             {
-                System.IO.StreamWriter fs = new System.IO.StreamWriter(saveFileDialog1.OpenFile());
-
-                bool anyModules = this.modulesList.Any(), anyFiles = this.filesList.Any();
-
-                if (!(anyModules || anyFiles))
-                {
-                    fs.WriteLine("File list empty");
-                }
-                else
-                {
-                    if (anyModules)
-                    {
-                        fs.WriteLine("Modules:");
-                        foreach (Analyzer.Info.IGatheredInfo module in this.modulesList.Values)
-                        {
-                            fs.WriteLine(module.Name);
-                        }
-                        fs.WriteLine();
-                    }
-
-                    if (anyFiles)
-                    {
-                        fs.WriteLine("Files:");
-                        foreach (Analyzer.Info.IGatheredInfo file in this.filesList.Values)
-                        {
-                            fs.WriteLine(file.Name);
-                        }
-                    }
-                }
-                fs.Close();
+                return;
             }
+            
+            System.IO.StreamWriter fs = new System.IO.StreamWriter(saveFileDialog1.OpenFile());
+
+            bool anyModules = this.modulesList.Any(), anyFiles = this.filesList.Any();
+
+            if (!(anyModules || anyFiles))
+            {
+                fs.WriteLine("File list empty");
+            }
+            else
+            {
+                if (anyModules)
+                {
+                    fs.WriteLine("Modules:");
+                    foreach (Analyzer.Info.GatheredInfo module in this.modulesList.Values)
+                    {
+                        fs.WriteLine(module.Description);
+                    }
+                    fs.WriteLine();
+                }
+
+                if (anyFiles)
+                {
+                    fs.WriteLine("Files:");
+                    foreach (Analyzer.Info.GatheredInfo file in this.filesList.Values)
+                    {
+                        fs.WriteLine(file.Description);
+                    }
+                }
+            }
+            fs.Close();
         }
     }
 }

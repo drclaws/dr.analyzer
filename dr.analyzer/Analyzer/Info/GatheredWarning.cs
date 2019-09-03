@@ -1,48 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DrAnalyzer.Analyzer.Info
+﻿namespace DrAnalyzer.Analyzer.Info
 {
-    public class GatheredWarning : IGatheredInfo
+    public class GatheredWarning : GatheredInfo
     {
-        public enum WarningType : Int32
-        {
-            GatherNameTooBig = -1,
-            GatherCannotGetValue = -2
-        }
+        public override System.Drawing.Color Color { get; } = System.Drawing.Color.Yellow;
 
-        public GatherType Type { get; private set; }
-        public GatherFuncType FuncType { get; private set; }
-        public WarningType Warning { get; private set; }
-        public string Name
-        {
-            get
-            {
-                switch(this.Warning)
-                {
-                    case WarningType.GatherNameTooBig:
-                        return "Name of opened file is to big to transfer";
-                    case WarningType.GatherCannotGetValue:
-                        return "Cannot get name of file";
-                    default:
-                        return "Unknown warning";
-                }
-            }
-        }
+        protected override string Title { get; } = "Warning";
+        
+        public GatheredWarning(GatherType type, GatherFuncType funcType)
+            : base(type, funcType) { }
 
-        public GatheredWarning( GatherType type, GatherFuncType funcType, Int32 warningType)
-        {
-            this.Type = type;
-            this.FuncType = funcType;
-            this.Warning = (WarningType)warningType;
-        }
-
-        public string AsTextMessage()
-        {
-            return String.Format("Warning {0} ({1}): {2}", this.Type.GetDescription(), this.FuncType.GetDescription(), this.Name);
-        }
+        public GatheredWarning(GatherType type, GatherFuncType funcType, string description)
+            : base(type, funcType, description) { }
     }
 }

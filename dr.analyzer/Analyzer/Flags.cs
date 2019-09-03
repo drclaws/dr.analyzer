@@ -20,10 +20,8 @@ namespace DrAnalyzer.Analyzer
                 FieldInfo field = type.GetField(name);
                 if (field != null)
                 {
-                    DescriptionAttribute attr =
-                           Attribute.GetCustomAttribute(field,
-                             typeof(DescriptionAttribute)) as DescriptionAttribute;
-                    if (attr != null)
+                    if (Attribute.GetCustomAttribute(field,
+                        typeof(DescriptionAttribute)) is DescriptionAttribute attr)
                     {
                         return attr.Description;
                     }
@@ -80,67 +78,102 @@ namespace DrAnalyzer.Analyzer
         NoCacheModifierflag =       0x200,
         WriteCombineModifierflag =  0x400
     }
-
-    [Flags]
+    
     public enum GatherFuncType : UInt16
     {
-        GatherUnknownFunc =     0x0000,
-
-        GatherFileFunc =        0x1000,
-        GatherLibraryFunc =     0x2000,
-
-        GatherLoadFunc =        0x4000,
-
-        [Description("CreateFile2")]
-        GatherCreateFile2 =     GatherFileFunc | 0x0001,
-        [Description("CreateFileA")]
-        GatherCreateFileA =     GatherFileFunc | 0x0002,
-        [Description("CreateFileW")]
-        GatherCreateFileW =     GatherFileFunc | 0x0004,
-        [Description("CreateFileById")]
-        GatherOpenFileById =    GatherFileFunc | 0x0008,
-
-        [Description("LoadLibraryA")]
-        GatherLoadLibraryA =    GatherLibraryFunc | 0x0001,
-        [Description("LoadLibraryW")]
-        GatherLoadLibraryW =    GatherLibraryFunc | 0x0002,
-        [Description("LoadLibraryExA")]
-        GatherLoadLibraryExA =  GatherLibraryFunc | 0x0004,
-        [Description("LoadLibraryExW")]
-        GatherLoadLibraryExW =  GatherLibraryFunc | 0x0008,
-
+        // Hook's sender locations
         [Description("Connection stage")]
-        GatherConnection =      GatherLoadFunc | 0x0001,
+        GatherConnection = 0x0000,
         [Description("FilesOnLoad")]
-        GatherFilesOnLoad =     GatherLoadFunc | 0x0002,
+        GatherFilesOnLoad,
         [Description("Waiter thread")]
-        GatherWaiter =          GatherLoadFunc | 0x0004,
+        GatherWaiter,
         [Description("Sender thread")]
-        GatherBufferSender =    GatherLoadFunc | 0x0008
+        GatherBufferSender,
+                                    
+        // Detoured file opening locations
+        [Description("CreateFile2")]
+        GatherCreateFile2 = 0x0010,
+        [Description("CreateFileA")]
+        GatherCreateFileA,
+        [Description("CreateFileW")]
+        GatherCreateFileW,
+        [Description("CreateFileById")]
+        GatherOpenFileById,
+        
+        // Detoured module loading locations
+        [Description("LoadLibraryA")]
+        GatherLoadLibraryA = 0x0020,
+        [Description("LoadLibraryW")]
+        GatherLoadLibraryW,
+        [Description("LoadLibraryExA")]
+        GatherLoadLibraryExA,
+        [Description("LoadLibraryExW")]
+        GatherLoadLibraryExW,
+        
+        // GUI-app's receiver locations
+        [Description("RecieverThreadFunc")]
+        GatherReceiverThread = 0x0030
     }
 
-    [Flags]
+    [Flags]    
     public enum GatherType : UInt16
     {
-        GatherNone =            0x0000,
-
-        GatherStatus =          0x1000,
-        GatherResource =        0x2000,
-
-        [Description("Gathering has been activated")]
-        GatherActivated =       GatherStatus | 0x0001,
-        [Description("Gathering has been stopped")]
-        GatherDeactivated =     GatherStatus | 0x0002,
-        [Description("Gathering is up")]
-        GatherStillUp =         GatherStatus | 0x0004,
-        [Description("Waiter thread error")]
-        GatherWaiterError =     GatherStatus | 0x0008,
-        [Description("Detouring error")]
-        GatherDetourError =     GatherStatus | 0x0010,
-
+        GatherNone =                    0x0000,
+    
+        // FIXED BITS (all abstract)
+        GatherError =                   0x8000,
+        GatherWarning =                 0x4000,
+        
+        GatherHasValue =                0x2000, // defines that message will have additional some data
+        
+        GatherStatus =                  0x1000, // connection status group   
+        GatherResource =                0x0800, // collected data group
+        
+        // FIXED BITS PAIRS / DATA
         [Description("File")]
-        GatherFile =            GatherResource | 0x0001,
+        GatherFile =                    0x0100 | GatherResource,
         [Description("Library")]
-        GatherLibrary =         GatherResource | 0x0002
+        GatherLibrary =                 0x0200 | GatherResource,
+        GatherReservedResource =        0x0400 | GatherResource,
+        
+        // DATA
+        // Statuses
+        [Description("Gathering has been started")]
+        GatherStarted =                 0x0000 | GatherStatus,
+        [Description("Gathering has been stopped")]
+        GatherStopped =                 0x0001 | GatherStatus,
+        [Description("Gathering is up")]
+        GatherStillUp =                 0x0002 | GatherStatus,
+    
+        // WARNINGS
+        // Collected data
+        GatherPathToBig =               0x0000 | GatherWarning | GatherResource, // abstract
+        [Description("Path to gathered file is to big")]
+        GatherFilePathToBig =           GatherPathToBig | GatherFile,
+        [Description("Path to gathered module is to big")]
+        GatherModulePathToBig =         GatherPathToBig | GatherLibrary,
+    
+        GatherCannotGetPath =           0x0001 | GatherWarning | GatherResource, // abstract
+        [Description("Cannot get filepath of gathered file handle")]
+        GatherFileCannotGetPath =       GatherCannotGetPath | GatherFile,
+        [Description("Cannot get filepath of gathered module handle")]
+        GatherLibraryCannotGetPath =    GatherCannotGetPath | GatherLibrary,
+        
+        // ERRORS
+        // Statuses
+        [Description("Detouring analyzed calls error")]
+        GatherDetourError =             0x0000 | GatherError | GatherStatus,
+        [Description("Undetouring analyzed calls error")]
+        GatherUndetourError =           0x0001 | GatherError | GatherStatus,
+        [Description("Waiter thread error")]
+        GatherWaiterError =             0x0002 | GatherError | GatherStatus,
+        
+        // Collected data
+        GatherInfoOnLoadNotGathered =   0x0000 | GatherError | GatherResource, // abstract
+        [Description("Error on getting info about opened file on analyze process start")]
+        GatherFilesOnLoadNotGathered =  GatherInfoOnLoadNotGathered | GatherFile,
+        [Description("Error on getting info about used modules on analyze process start")]
+        GatherLibrariesOnLoadNotGathered = GatherInfoOnLoadNotGathered | GatherLibrary
     }
 }

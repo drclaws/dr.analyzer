@@ -1,74 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DrAnalyzer.Analyzer.Info
 {
-    public class InfoBuilder
+    public static class InfoBuilder
     {
-        private const int typeSize = sizeof(UInt16);
-        private const int funcTypeSize = sizeof(UInt16);
-        private const int lengthSize = sizeof(Int32);
-        private const int letterSize = sizeof(Char);
+        private const int TypeSize = sizeof(UInt16);
+        private const int FuncTypeSize = sizeof(UInt16);
+        private const int LengthSize = sizeof(Int32);
+        private const UInt32 LetterSize = sizeof(Char);
 
-        public InfoBuilder()
+        public static List<GatheredInfo> ToInfoType(byte[] message)
         {
-            
-        }
+            List<GatheredInfo> infoList = new List<GatheredInfo>();
 
-        public List<IGatheredInfo> ToInfoType(byte[] message)
-        {
-            List<IGatheredInfo> infoList = new List<IGatheredInfo>();
+            uint messageSize = Convert.ToUInt32(message.Length);
+            uint currPos = 0;
 
-            int messageSize = Convert.ToInt32(message.Length);
-            int currPos = 0;
-
-            GatherType type;
-            GatherFuncType func;
-            Int32 length;
-
-            byte[] buffName, buffType = new byte[typeSize], buffFunc = new byte[funcTypeSize], buffNameLength = new byte[lengthSize];
+            byte[] buffType = new byte[TypeSize], buffFunc = new byte[FuncTypeSize], buffNameLength = new byte[LengthSize];
 
             while (currPos < messageSize)
             {
-                IGatheredInfo info = null;
-                Array.Copy(message, currPos, buffType, 0, typeSize);
-                currPos += typeSize;
-                Array.Copy(message, currPos, buffFunc, 0, funcTypeSize);
-                currPos += funcTypeSize;
+                Array.Copy(message, currPos, buffType, 0, TypeSize);
+                currPos += TypeSize;
+                Array.Copy(message, currPos, buffFunc, 0, FuncTypeSize);
+                currPos += FuncTypeSize;
 
-                type = (GatherType)BitConverter.ToUInt16(buffType, 0);
-                func = (GatherFuncType)BitConverter.ToInt16(buffFunc, 0);
+                GatherType type = (GatherType)BitConverter.ToUInt16(buffType, 0);
+                GatherFuncType func = (GatherFuncType)BitConverter.ToInt16(buffFunc, 0);
+                string dataInfo = null;
+                if (type.HasFlag(GatherType.GatherHasValue))
+                {
+                    type ^= GatherType.GatherHasValue;
+                    Array.Copy(message, currPos, buffNameLength, 0, LengthSize);
+                    currPos += LengthSize;
+                    UInt32 length = BitConverter.ToUInt32(buffNameLength, 0);
+                    
+                    byte[] buffName = new byte[length * LetterSize];
+                    Array.Copy(message, currPos, buffName, 0, length * LetterSize);
+                    currPos += length * LetterSize;
+                    dataInfo = System.Text.Encoding.Unicode.GetString(buffName);
+                }
 
-                if ((type & GatherType.GatherResource) != 0)
+                if (type.HasFlag(GatherType.GatherError))
                 {
-                    Array.Copy(message, currPos, buffNameLength, 0, lengthSize);
-                    currPos += lengthSize;
-                    length = BitConverter.ToInt32(buffNameLength, 0);
-
-                    if (length > 0)
-                    {
-                        buffName = new byte[length * letterSize];
-                        Array.Copy(message, currPos, buffName, 0, length * letterSize);
-                        currPos += length * letterSize;
-                        info = new GatheredResource(type, func, System.Text.Encoding.Unicode.GetString(buffName));
-                    }
-                    else
-                    {
-                        info = new GatheredWarning(type, func, length);
-                    }
+                    infoList.Add(new GatheredError(type, func, dataInfo));
                 }
-                else if ((type & GatherType.GatherStatus) != 0)
+                else if (type.HasFlag(GatherType.GatherWarning))
                 {
-                    info = new GatheredStatus(type, func);
+                    infoList.Add(new GatheredWarning(type, func, dataInfo));
                 }
-                else
+                else if (type.HasFlag(GatherType.GatherResource))
                 {
-                    throw new Exception(String.Format("Error: {0:X4} type doesn't exist", (UInt16)type));
+                    infoList.Add(new GatheredResource(type, func, dataInfo));
                 }
-                infoList.Add(info);
+                else if (type.HasFlag(GatherType.GatherStatus))
+                {
+                    infoList.Add(new GatheredStatus(type, func, dataInfo));
+                }
             }
 
             return infoList;

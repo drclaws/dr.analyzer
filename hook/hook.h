@@ -14,3 +14,5 @@ extern HANDLE waiterSemaphore;
 extern HANDLE freeLibSemaphore;
 
 void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff);
+
+void GetFeaturesSupport();

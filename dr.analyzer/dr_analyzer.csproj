@@ -73,7 +73,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Analyzer\Info\IGatheredInfo.cs" />
+    <Compile Include="Analyzer\Info\GatheredError.cs" />
+    <Compile Include="Analyzer\Info\GatheredInfo.cs" />
     <Compile Include="Analyzer\Info\GatheredResource.cs" />
     <Compile Include="Analyzer\Info\GatheredStatus.cs" />
     <Compile Include="Analyzer\Info\GatheredWarning.cs" />

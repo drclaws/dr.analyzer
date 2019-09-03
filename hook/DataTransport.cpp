@@ -39,7 +39,7 @@ DataTransport::DataTransport()
 		throw std::exception("Connection error: Can't open mapping");
 	}
 
-	this->transportView = (INT8*)MapViewOfFile(
+	this->transportView = (PBYTE)MapViewOfFile(
 		this->transportMapping,
 		FILE_MAP_ALL_ACCESS,
 		0,
@@ -75,7 +75,7 @@ DataTransport::DataTransport()
 	}
 
 	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new GatherInfo(GatherType::GatherActivated, GatherFuncType::GatherConnection));
+	buff->AddInfo(new GatherInfo(GatherType::GatherStarted, GatherFuncType::GatherConnection));
 	this->SendData(buff);
 
 	// Launch sender's thread
@@ -90,7 +90,7 @@ DataTransport::~DataTransport()
 
 	this->isDisconnecting = true;
 	BuffObject* buff = new BuffObject();
-	buff->AddInfo(new GatherInfo(GatherType::GatherDeactivated, GatherFuncType::GatherConnection));
+	buff->AddInfo(new GatherInfo(GatherType::GatherStopped, GatherFuncType::GatherConnection));
 	this->buffQueue.push(buff);
 	this->queueOperEndedCV.notify_one();
 
@@ -134,7 +134,7 @@ void DataTransport::SenderThreadFunc()
 
 			this->queueOperMutex.unlock();
 
-			INT8* message = buff->ToMessage();
+			PBYTE message = buff->ToMessage();
 
 			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
 

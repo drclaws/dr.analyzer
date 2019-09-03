@@ -17,14 +17,12 @@ namespace DrAnalyzer.Analyzer
 
         private readonly MainForm mainFormClass;
 
-        private readonly Info.InfoBuilder infoBuilder;
-
         private MemoryMappedFile ipcMemory;
         private Mutex ipcMutex;
         private Semaphore ipcSemaphore;
         private Semaphore ipcWaiterSemaphore;
 
-        private Thread recieverThread;
+        private Thread receiverThread;
         private Thread queueThread;
         private readonly Queue<byte[]> messagesQueue;
         private Semaphore queueSem;
@@ -38,7 +36,6 @@ namespace DrAnalyzer.Analyzer
         {
             this.resourcesDictionary = new Dictionary<string, Info.GatheredResource>();
             this.mainFormClass = formClass;
-            this.infoBuilder = new Info.InfoBuilder();
             this.messagesQueue = new Queue<byte[]>();
         }
 
@@ -54,11 +51,11 @@ namespace DrAnalyzer.Analyzer
             securitySemaphore.AddAccessRule(new SemaphoreAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), SemaphoreRights.FullControl, AccessControlType.Allow));
             securityWaiter.AddAccessRule(new SemaphoreAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), SemaphoreRights.FullControl, AccessControlType.Allow));
 
-            this.ipcMemory = MemoryMappedFile.CreateNew(String.Format("Global\\dr_analyzer_buffer_{0}", pid), 76012);
+            this.ipcMemory = MemoryMappedFile.CreateNew($"Global\\dr_analyzer_buffer_{pid}", 76012);
             this.ipcMemory.SetAccessControl(securityMemory);
-            this.ipcMutex = new Mutex(false, String.Format("Global\\dr_analyzer_mutex_{0}", pid), out bool createdMutex, securityMutex);
-            this.ipcSemaphore = new Semaphore(0, 1, String.Format("Global\\dr_analyzer_semaphore_{0}", pid), out bool createdSemaphore, securitySemaphore);
-            this.ipcWaiterSemaphore = new Semaphore(0, 1, String.Format("Global\\dr_analyzer_waiter_semaphore_{0}", pid), out bool createdWaiter, securityWaiter);
+            this.ipcMutex = new Mutex(false, $"Global\\dr_analyzer_mutex_{pid}", out bool createdMutex, securityMutex);
+            this.ipcSemaphore = new Semaphore(0, 1, $"Global\\dr_analyzer_semaphore_{pid}", out bool createdSemaphore, securitySemaphore);
+            this.ipcWaiterSemaphore = new Semaphore(0, 1, $"Global\\dr_analyzer_waiter_semaphore_{pid}", out bool createdWaiter, securityWaiter);
 
             if (!(createdMutex && createdSemaphore && createdWaiter))
             {
@@ -69,11 +66,11 @@ namespace DrAnalyzer.Analyzer
             this.queueMutex = new Mutex(false);
             this.isExit = false;
 
-            this.recieverThread = new Thread(this.RecieverThreadFunc);
+            this.receiverThread = new Thread(this.ReceiverThreadFunc);
             this.queueThread = new Thread(this.QueueThreadFunc);
 
             this.queueThread.Start();
-            this.recieverThread.Start();
+            this.receiverThread.Start();
 
             Injector.InjectByPid(pid);
 
@@ -101,15 +98,15 @@ namespace DrAnalyzer.Analyzer
         {
             while (true)
             {
-                bool disconnectRecieved = false;
+                bool disconnectReceived = false;
 
                 this.queueSem.WaitOne();
 
-                List<Info.IGatheredInfo> gatheredInfo;
+                List<Info.GatheredInfo> gatheredInfo;
 
                 if (isExit)
                 {
-                    gatheredInfo = new List<Info.IGatheredInfo> { new Info.NotGatheredError() };
+                    gatheredInfo = new List<Info.GatheredInfo> { new Info.NotGatheredError() };
                     this.mainFormClass.AddInfo(gatheredInfo);
                     this.Active = false;
                     this.FreeSharedObjects();
@@ -132,21 +129,21 @@ namespace DrAnalyzer.Analyzer
                     }
                     this.queueMutex.ReleaseMutex();
 
-                    gatheredInfo = this.infoBuilder.ToInfoType(message);
+                    gatheredInfo = Info.InfoBuilder.ToInfoType(message);
                     this.mainFormClass.AddInfo(gatheredInfo);
 
-                    if (gatheredInfo.Exists(info => info.Type == GatherType.GatherDeactivated))
+                    if (gatheredInfo.Exists(info => info.Type == GatherType.GatherStopped))
                     {
-                        disconnectRecieved = true;
+                        disconnectReceived = true;
                         break;
                     }
                 }
 
-                if (disconnectRecieved)
+                if (disconnectReceived)
                 {
                     this.isExit = true;
                     this.ipcSemaphore.Release();
-                    this.recieverThread.Join();
+                    this.receiverThread.Join();
                     this.Active = false;
                     this.FreeSharedObjects();
                     break;
@@ -154,9 +151,9 @@ namespace DrAnalyzer.Analyzer
             }
         }
 
-        private void RecieverThreadFunc()
+        private void ReceiverThreadFunc()
         {
-            byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 }, sizeBuff = new byte[4], message;
+            byte[] zeroSizeValue = new byte[] { 0, 0, 0, 0 }, sizeBuff = new byte[4];
             MemoryMappedViewStream viewStream = this.ipcMemory.CreateViewStream();
             System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
 
@@ -188,7 +185,7 @@ namespace DrAnalyzer.Analyzer
                     break;
                 }
 
-                message = new byte[size];
+                byte[] message = new byte[size];
                 viewStream.Read(message, 0, size);
                 viewStream.Position = 0;
                 viewStream.Write(zeroSizeValue, 0, 4);

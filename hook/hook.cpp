@@ -2,7 +2,9 @@
 #include <winternl.h>
 #include "hook.h"
 
-#include <exception>
+#include <cstdlib>
+#include <string>
+#include <wchar.h>
 
 #include "DataTransport.h"
 #include "GatherInfo.h"
@@ -42,29 +44,55 @@ typedef NTSYSAPI VOID (NTAPI *_RtlInitUnicodeString)(
     PUNICODE_STRING DestinationString,
     __drv_aliasesMem PCWSTR SourceString
     );
+typedef NTSYSAPI VOID (NTAPI *_RtlGetNtVersionNumbers)(
+    PULONG NtMajorVersion,
+    PULONG NtMinorVersion,
+    PULONG NtBuildNumber
+    );
 
 typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO
 {
     HANDLE Handle;
-        ULONG_PTR HandleCount;
-        ULONG_PTR PointerCount;
-        ULONG GrantedAccess;
-        ULONG TypeIndex;
-        ULONG HandleAttributes;
-        ULONG Reserved;
+    ULONG_PTR HandleCount;
+    ULONG_PTR PointerCount;
+    ULONG GrantedAccess;
+    ULONG TypeIndex;
+    ULONG HandleAttributes;
+    ULONG Reserved;
 } PROCESS_HANDLE_TABLE_ENTRY_INFO, *PPROCESS_HANDLE_TABLE_ENTRY_INFO;
 
 typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 {
-    ULONG_PTR LengthPtr;
-    ULONG_PTR Reserved;
+    _Out_opt_ ULONG_PTR LengthPtr;
+    _Out_opt_ ULONG_PTR Unused;
     PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
 
 typedef struct _OBJECT_TYPE_INFORMATION
 {
     UNICODE_STRING TypeName;
-    BYTE Reserved[sizeof(LONG) * 17 + sizeof(BOOLEAN) + sizeof(USHORT) + sizeof(GENERIC_MAPPING)];
+    ULONG TotalNumberOfObjects;
+    ULONG TotalNumberOfHandles;
+    ULONG TotalPagedPoolUsage;
+    ULONG TotalNonPagedPoolUsage;
+    ULONG TotalNamePoolUsage;
+    ULONG TotalHandleTableUsage;
+    ULONG HighWaterNumberOfObjects;
+    ULONG HighWaterNumberOfHandles;
+    ULONG HighWaterPagedPoolUsage;
+    ULONG HighWaterNonPagedPoolUsage;
+    ULONG HighWaterNamePoolUsage;
+    ULONG HighWaterHandleTableUsage;
+    ULONG InvalidAttributes;
+    GENERIC_MAPPING GenericMapping;
+    ULONG ValidAccessMask;
+    BOOLEAN SecurityRequired;
+    BOOLEAN MaintainHandleCount;
+    UCHAR TypeIndex;
+    CHAR ReservedByte;
+    ULONG PoolType;
+    ULONG DefaultPagedPoolCharge;
+    ULONG DefaultNonPagedPoolCharge;
 } OBJECT_TYPE_INFORMATION, *POBJECT_TYPE_INFORMATION;
 
 typedef struct _OBJECT_TYPES_INFORMATION
@@ -81,16 +109,12 @@ HANDLE waiterSemaphore = NULL;
 
 HANDLE freeLibSemaphore = NULL;
 
+bool isSupportInfoProc = false;
+bool isSupportTypeIndexInHandleInfoProc = false;
 
-inline void SendToDT(DataTransport *dataTransport, BuffObject **buffObj, GatherInfo *info) {
-    if (!(*buffObj)->AddInfo(info)) {
-        dataTransport->SendData(*buffObj);
-    	*buffObj = new BuffObject();
-    	(*buffObj)->AddInfo(info);
-    }
-}
+std::wstring lastErrorInfo = L"";
 
-ULONG GetFileHandleTypeNumber() {
+bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
     HMODULE ntdllHandle = GetModuleHandleA("ntdll.dll");
     _NtQueryObject NtQueryObject =
             (_NtQueryObject)GetProcAddress(ntdllHandle, "NtQueryObject");
@@ -99,13 +123,16 @@ ULONG GetFileHandleTypeNumber() {
     _RtlInitUnicodeString RtlInitUnicodeString = 
             (_RtlInitUnicodeString)GetProcAddress(ntdllHandle, "RtlInitUnicodeString");
     if(NtQueryObject == NULL) {
-        throw std::exception();//L"Can't get \"NtQueryObject\" function address");
+        lastErrorInfo = L"Can't find \"NtQueryObject\" function";
+        return false;
     }
     if(RtlEqualUnicodeString == NULL) {
-        throw std::exception();//L"Can't get \"RtlEqualUnicodeString\" function address");
+        lastErrorInfo = L"Can't find \"RtlEqualUnicodeString\" function";
+        return false;
     }
     if(RtlInitUnicodeString == NULL) {
-        throw std::exception();//L"Can't get \"RtlInitUnicodeString\" function address");
+        lastErrorInfo = L"Can't find \"RtlInitUnicodeString\" function";
+        return false;
     }
     
     UNICODE_STRING searchedTypeName;
@@ -125,12 +152,13 @@ ULONG GetFileHandleTypeNumber() {
         )) == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
     {
         std::free(types);
-        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) {
+        
+        if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && typesSize != returnedLength) {
             typesSize = returnedLength;
         }
         else if ((typesSize *= 2) > MAX_CONTAINER_SIZE) {
-            // TODO large array, imagine something
-            throw std::exception();//L"");
+            lastErrorInfo = L"Too many handle types";
+            return false;
         }
         
         types = (POBJECT_TYPES_INFORMATION)std::malloc(typesSize);
@@ -138,22 +166,53 @@ ULONG GetFileHandleTypeNumber() {
 
     if(!NT_SUCCESS(status)) {
         std::free(types);
-        // TODO error on getting array, imagine something
-        throw std::exception();//L"Error on \"\"");
+        lastErrorInfo = L"Unknown error on getting handle types list";
+        return false;
+    }
+    ULONG length = types->Length;
+    bool moreThanCanContain = false;
+    if(types->Length > (ULONG)UCHAR_MAX - 2) {
+        length = (ULONG)UCHAR_MAX - 2;
+        moreThanCanContain = true;
     }
     
     POBJECT_TYPE_INFORMATION typeInfo = &types->Types[0];
-    for(ULONG i = 0; i < types->Length; i++) {
+    for(ULONG i = 0; i < length; i++) {
         if(RtlEqualUnicodeString(&searchedTypeName, &typeInfo->TypeName, TRUE)) {
             std::free(types);
-            return i + 2;
+            // TODO add using typeInfo->TypeIndex value after windows detection implementation 
+            returnTypeIndex = (UCHAR)(i + 2);//typeInfo->TypeIndex;
+            return true;
         }
-        typeInfo = (POBJECT_TYPE_INFORMATION)((PCHAR)(typeInfo + 1) + ((ULONG)(((ULONG)(typeInfo->TypeName.MaximumLength) + sizeof(ULONG_PTR) - 1)) & ~(sizeof(ULONG_PTR) - 1)));
+        typeInfo = (POBJECT_TYPE_INFORMATION)(
+            (ULONG_PTR)typeInfo + (ULONG_PTR)(
+                sizeof(OBJECT_TYPE_INFORMATION) + (
+                    (
+                        (ULONG_PTR)typeInfo->TypeName.MaximumLength + sizeof(ULONG_PTR) - 1
+                    ) & ~(sizeof(ULONG_PTR) - 1))));
     }
     
     std::free(types);
-    // TODO file type not found, imagine something
-    throw std::exception();//L"");
+    lastErrorInfo = L"Index of handle type for \"File\" not found";
+    if (moreThanCanContain) {
+        lastErrorInfo += L" in first " + std::to_wstring(length) + L" found types";
+    }
+    return false;
+}
+
+inline void SendToDT(DataTransport *dataTransport, BuffObject **buffObj, GatherInfo *info) {
+    if (!(*buffObj)->AddInfo(info)) {
+        dataTransport->SendData(*buffObj);
+    	*buffObj = new BuffObject();
+    	(*buffObj)->AddInfo(info);
+    }
+}
+
+inline PWSTR ErrorInfoInPWSTR() {
+    size_t size = sizeof(WCHAR) * (lastErrorInfo.length() + 1);
+    PWSTR message = (PWSTR)std::malloc(size);
+    wcscpy_s(message, size, lastErrorInfo.c_str());
+    return message;
 }
 
 void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
@@ -161,22 +220,25 @@ void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
         (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess");
 
     if (NtQueryInformationProcess == NULL) {
-        // TODO send warning "Can't get \"NtQueryObject\" function address"
+        lastErrorInfo = L"Can't find \"NtQueryInformationProcess\" function";
+        SendToDT(
+                 dataTransport,
+                 currBuff,
+                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
     }
 
-    ULONG fileHandleTypeNumber;
-
-    try {
-        fileHandleTypeNumber = GetFileHandleTypeNumber();
-    }
-    catch (const std::exception e) {
-        // TODO send warning "Can't get opened files" with message from exception
+    UCHAR fileHandleTypeNumber;
+    if(!GetFileHandleTypeNumber(fileHandleTypeNumber)) {
+        SendToDT(
+                 dataTransport,
+                 currBuff,
+                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
     }
     
     NTSTATUS status;
-    ULONG returnedLength;
+    ULONG returnedLength = 0;
     HANDLE handle = GetCurrentProcess();
     ULONG handlesInfoSize = 0x4000;
     PPROCESS_HANDLE_SNAPSHOT_INFORMATION handlesInfo = (PPROCESS_HANDLE_SNAPSHOT_INFORMATION)std::malloc(handlesInfoSize);
@@ -189,20 +251,28 @@ void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
         &returnedLength)) == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
     {
         std::free(handlesInfo);
-        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) {
-        
+        if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && handlesInfoSize != returnedLength) {
+            handlesInfoSize = returnedLength;
         }
         else {
-            if ((handlesInfoSize *= 2) > MAX_CONTAINER_SIZE) {
-                // TODO send warning "Can't get opened files" because of large handles amount
-                return;
-            }
-            handlesInfo = (PPROCESS_HANDLE_SNAPSHOT_INFORMATION)std::malloc(handlesInfoSize);
+            handlesInfoSize *= 2;
         }
+        if (handlesInfoSize > MAX_CONTAINER_SIZE) {
+            lastErrorInfo = L"Process has too many handles";
+            SendToDT(
+                dataTransport,
+                currBuff,
+                new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
+            return;
+        }
+        handlesInfo = (PPROCESS_HANDLE_SNAPSHOT_INFORMATION)std::malloc(handlesInfoSize);
     }
     
     if (!NT_SUCCESS(status)) {
-        // TODO send warning "Can't get opened files"
+        SendToDT(
+            dataTransport,
+            currBuff,
+            new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad));
         std::free(handlesInfo);
         return;
     }
@@ -220,4 +290,18 @@ void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
     }
 
     std::free(handlesInfo);
+}
+
+void GetFeaturesSupport() {
+    const ULONG win8BuildNumber = 9200,
+        winBlueBuildNumber = 9600;
+    _RtlGetNtVersionNumbers RtlGetNtVersionNumbers = 
+                (_RtlGetNtVersionNumbers)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetNtVersionNumbers");
+    if(RtlGetNtVersionNumbers == NULL) {
+        return;
+    }
+    ULONG buildNum;
+    RtlGetNtVersionNumbers(NULL, NULL, &buildNum);
+    isSupportInfoProc = buildNum == win8BuildNumber;
+    isSupportTypeIndexInHandleInfoProc = buildNum == winBlueBuildNumber;
 }

@@ -40,22 +40,22 @@ bool BuffObject::IsEmpty()
 	return this->length == 0;
 }
 
-INT8* BuffObject::ToMessage()
+PBYTE BuffObject::ToMessage()
 {
-	INT8* message = new INT8[this->MessageSize()];
+	PBYTE message = new BYTE[this->MessageSize()];
 	
 	std::memcpy(message, &this->size, sizeof(this->size));
 	
-	INT8* currPos = message + sizeof(this->size);
+	PBYTE currPos = (PBYTE)((ULONG_PTR)message + sizeof(this->size));
 	buff_size_t currBuffSize;
-	INT8 *currBuff;
+	PBYTE currBuff;
 
 	for (int i = 0; i < this->length; i++) {
 		currBuffSize = this->buffer[i]->GetSize();
 		currBuff = this->buffer[i]->ToMessageFormat();
 		std::memcpy(currPos, currBuff, currBuffSize);
 		
-		currPos += currBuffSize;
+		currPos = (PBYTE)((ULONG_PTR)currPos + (ULONG_PTR)currBuffSize);
 		delete [] currBuff;
 	}
 

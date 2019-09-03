@@ -19,7 +19,7 @@ public:
 
 	bool AddInfo(GatherInfo* info);
 	bool IsEmpty();
-	INT8* ToMessage();
+	PBYTE ToMessage();
 	buff_size_t MessageSize();
 
 private:

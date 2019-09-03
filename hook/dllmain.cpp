@@ -59,6 +59,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
 	if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
 		libHModule = hModule;
+		
+		GetFeaturesSupport();
+		
 		if (!GetOrigAddresses()) {
 			return FALSE;
 		}
@@ -77,6 +80,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			CloseSemaphores();
 			return FALSE;
 		}
+		
 		gatherer = new Gatherer();
 		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
 			delete gatherer;
