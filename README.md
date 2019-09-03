@@ -8,14 +8,13 @@ Also it only supports single-process programs for now.
 ## Requirements
 
   + [Detours](https://github.com/microsoft/detours) – detouring library developed by Microsoft
-  + [Handle](https://docs.microsoft.com/en-us/sysinternals/downloads/handle) (optionally) – used in project for getting list of opened files on analyze start
-  + Visual Studio 2017
-  + .Net Framework 4.6.2
+  + MSBuild with support .Net Framework 4.6.2
+  + MSVC build tools x64/x86 v141
+  + Windows SDK
 
-## Building and using
+## Building
 
-1) Clone this repository
-2) Build Detours
+1) Clone [Detours](https://github.com/microsoft/detours) repository
+2) Build the library
 3) Put "include" directory to "libraries/include" and 64-bit library to "libraries/x64"
-4) Build solution with Visual Studio Tools
-5) (Optionally) Put handle64.exe near Analyzer executable
+4) Build solution with MSBuild
