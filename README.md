@@ -16,5 +16,6 @@ Also it only supports single-process programs for now.
 
 1) Clone [Detours](https://github.com/microsoft/detours) repository
 2) Build the library
-3) Put "include" directory to "libraries/include" and 64-bit library to "libraries/x64"
+3) Clone this repository
+3) Put "include" directory of Detours to "libraries/include" and x64 library to "libraries/x64"
 4) Build solution with MSBuild
