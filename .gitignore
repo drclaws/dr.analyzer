@@ -33,11 +33,13 @@
 
 # VS temps and locals
 .vs/
+.idea/
 bin/*
 Debug/*
 x86/*
 x64/*
 *.vcxproj.user
+*.csproj.user
 
 # Analyzer obj and bin files
 dr.analyzer/obj/*
