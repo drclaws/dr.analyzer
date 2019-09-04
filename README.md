@@ -6,16 +6,21 @@ The analyzer is for 64-bit only including your analyzed program but in future it
 Also it only supports single-process programs for now.
 
 ## Requirements
+  + Windows 8 (x64) or higher
+  + .Net Framework 4.6.2
+
+## Building
+### Tools
 
   + [Detours](https://github.com/microsoft/detours) – detouring library developed by Microsoft
-  + MSBuild with support .Net Framework 4.6.2
+  + MSBuild with .Net Framework 4.6.2 SDK
   + MSVC build tools x64/x86 v141
   + Windows SDK
 
-## Building
+### Steps
 
-1) Clone [Detours](https://github.com/microsoft/detours) repository
-2) Build the library
-3) Clone this repository
-3) Put "include" directory of Detours to "libraries/include" and x64 library to "libraries/x64"
-4) Build solution with MSBuild
+  1) Clone [Detours](https://github.com/microsoft/detours) repository
+  2) Build the library
+  3) Clone this repository
+  3) Put "include" directory of Detours to "libraries/include" and x64 library to "libraries/x64"
+  4) Build solution with MSBuild
