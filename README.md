@@ -8,7 +8,8 @@ Also it only supports single-process programs for now.
 ## Requirements
   + Windows 8 (x64) or higher
   + .Net Framework 4.6.2
-
+  + User with Admin Rights
+  
 ## Building
 ### Tools
 
