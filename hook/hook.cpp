@@ -15,6 +15,7 @@
 #define STATUS_BUFFER_OVERFLOW 0x80000005
 #define STATUS_BUFFER_TOO_SMALL 0xC0000023
 
+#define SystemExtendedHandleInformation 64
 #define ProcessHandleInformation 51
 #define ObjectTypesInformation 3
 
@@ -26,6 +27,12 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationProcess)(
     ULONG ProcessInformationClass,
     PVOID ProcessInformation,
     ULONG ProcessInformationLength,
+    PULONG ReturnLength
+    );
+typedef NTSTATUS (NTAPI *_NtQuerySystemInformation)(
+    ULONG SystemInformationClass,
+    PVOID SystemInformation,
+    ULONG SystemInformationLength,
     PULONG ReturnLength
     );
 typedef NTSTATUS (NTAPI *_NtQueryObject)(
@@ -63,10 +70,29 @@ typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO
 
 typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 {
-    _Out_opt_ ULONG_PTR LengthPtr;
+    _Out_opt_ ULONG_PTR Length;
     _Out_opt_ ULONG_PTR Unused;
     PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX
+{
+    PVOID Object;
+    ULONG_PTR Pid;
+    ULONG_PTR Handle;
+    ULONG GrantedAccess;
+    USHORT CreatorBackTraceIndex;
+    USHORT TypeIndex;
+    ULONG HandleAttributes;
+    ULONG Reserved;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION_EX
+{
+    ULONG_PTR Length;
+    ULONG_PTR Reserved;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
+} SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 typedef struct _OBJECT_TYPE_INFORMATION
 {
@@ -180,8 +206,12 @@ bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
     for(ULONG i = 0; i < length; i++) {
         if(RtlEqualUnicodeString(&searchedTypeName, &typeInfo->TypeName, TRUE)) {
             std::free(types);
-            // TODO add using typeInfo->TypeIndex value after windows detection implementation 
-            returnTypeIndex = (UCHAR)(i + 2);//typeInfo->TypeIndex;
+            if (isSupportTypeIndexInHandleInfoProc) {
+                returnTypeIndex = (UCHAR)typeInfo->TypeIndex;
+            }
+            else {
+                returnTypeIndex = (UCHAR)(i + 2);
+            }
             return true;
         }
         typeInfo = (POBJECT_TYPE_INFORMATION)(
@@ -215,7 +245,7 @@ inline PWSTR ErrorInfoInPWSTR() {
     return message;
 }
 
-void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
+void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff) {
     _NtQueryInformationProcess NtQueryInformationProcess =
         (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess");
 
@@ -277,9 +307,7 @@ void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
         return;
     }
     
-    PPROCESS_HANDLE_TABLE_ENTRY_INFO handleInfo = &handlesInfo->Handles[0];
-    
-    for(ULONG i = 0; i < handlesInfo->LengthPtr; i++) {
+    for(ULONG i = 0; i < handlesInfo->Length; i++) {
         PPROCESS_HANDLE_TABLE_ENTRY_INFO handleInfo = &handlesInfo->Handles[i];
         if(handleInfo->TypeIndex == fileHandleTypeNumber) {
             GatherInfo *tmpInfo = FileHandleToInfoObject(handleInfo->Handle, GatherFuncType::GatherFilesOnLoad);
@@ -292,6 +320,88 @@ void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
     std::free(handlesInfo);
 }
 
+void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff) {
+    _NtQuerySystemInformation NtQuerySystemInformation = 
+        (_NtQuerySystemInformation)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQuerySystemInformation");
+    if (NtQuerySystemInformation == NULL) {
+        lastErrorInfo = L"Can't find \"NtQuerySystemInformation\" function";
+        SendToDT(
+                 dataTransport,
+                 currBuff,
+                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
+        return;
+    }
+    UCHAR fileHandleTypeNumber;
+    if(!GetFileHandleTypeNumber(fileHandleTypeNumber)) {
+        SendToDT(
+                 dataTransport,
+                 currBuff,
+                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
+        return;
+    }
+    
+    NTSTATUS status;
+    ULONG returnedLength = 0;
+    ULONG handlesInfoSize = 0x10000;
+    PSYSTEM_HANDLE_INFORMATION_EX handlesInfo = (PSYSTEM_HANDLE_INFORMATION_EX)std::malloc(handlesInfoSize);
+    
+    while((status = NtQuerySystemInformation(
+        SystemExtendedHandleInformation,
+        handlesInfo,
+        handlesInfoSize,
+        &returnedLength)) == STATUS_INFO_LENGTH_MISMATCH || status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        std::free(handlesInfo);
+        if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && handlesInfoSize != returnedLength) {
+            handlesInfoSize = returnedLength;
+        }
+        else {
+            handlesInfoSize *= 2;
+        }
+        if (handlesInfoSize > MAX_CONTAINER_SIZE) {
+            lastErrorInfo = L"System has too many handles";
+            SendToDT(
+                dataTransport,
+                currBuff,
+                new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
+            return;
+        }
+        handlesInfo = (PSYSTEM_HANDLE_INFORMATION_EX)std::malloc(handlesInfoSize);
+    }
+    
+    if (!NT_SUCCESS(status)) {
+        SendToDT(
+            dataTransport,
+            currBuff,
+            new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad));
+        std::free(handlesInfo);
+        return;
+    }
+    
+    ULONG_PTR pid = GetCurrentProcessId();
+    
+    for(ULONG_PTR i = 0; i < handlesInfo->Length; i++) {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handlesInfo->Handles[i];
+        if(handleInfo->Pid == pid && handleInfo->TypeIndex == fileHandleTypeNumber) {
+            GatherInfo *tmpInfo = FileHandleToInfoObject((HANDLE)handleInfo->Handle, GatherFuncType::GatherFilesOnLoad);
+            if (tmpInfo != NULL) {
+                SendToDT(dataTransport, currBuff, tmpInfo);
+            }
+        }
+    }
+    
+    std::free(handlesInfo);
+}
+
+void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
+    if(isSupportInfoProc) {
+        SearchFileHandlesModern(dataTransport, currBuff);
+    }
+    else {
+        SearchFileHandlesLegacy(dataTransport, currBuff);
+    }
+}
+
 void GetFeaturesSupport() {
     const ULONG win8BuildNumber = 9200,
         winBlueBuildNumber = 9600;
@@ -302,6 +412,6 @@ void GetFeaturesSupport() {
     }
     ULONG buildNum;
     RtlGetNtVersionNumbers(NULL, NULL, &buildNum);
-    isSupportInfoProc = buildNum == win8BuildNumber;
-    isSupportTypeIndexInHandleInfoProc = buildNum == winBlueBuildNumber;
+    isSupportInfoProc = buildNum >= win8BuildNumber;
+    isSupportTypeIndexInHandleInfoProc = buildNum >= winBlueBuildNumber;
 }

@@ -1,12 +1,12 @@
 # Dr. Analyzer
-This software allows you to analyze your program to know which files and libraries it uses. The using method is detouring selected windows api methods of your program's process.
+This software allows you to analyze your program to know which files and libraries it uses in real time. The using method is detouring selected windows api methods of your program's process.
 
 The analyzer is for 64-bit only including your analyzed program but in future it will support 32-bit systems and programs.
 
 Also it only supports single-process programs for now.
 
 ## Requirements
-  + Windows 8 (x64) or higher
+  + Windows 7 (x64) or higher
   + .Net Framework 4.6.2
   + User with Admin Rights
   
