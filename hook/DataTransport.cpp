@@ -16,6 +16,7 @@
 #include "GatherInfo.h"
 #include "BuffObject.h"
 #include "flags.h"
+#include "hook.h"
 
 #include <iostream>
 
@@ -24,11 +25,14 @@ DataTransport::DataTransport()
 {
 	// Create connection
 	DWORD pid = GetCurrentProcessId();
-
-	std::wstring mapping_loc = L"Global\\dr_analyzer_buffer_" + std::to_wstring(pid);
-	std::wstring mutex_name = L"Global\\dr_analyzer_mutex_" + std::to_wstring(pid);
-	std::wstring semaphore_loc = L"Global\\dr_analyzer_semaphore_" + std::to_wstring(pid);
-
+    
+    std::wstring pidStr = std::to_wstring(pid);
+    
+	std::wstring mapping_loc = L"Global\\dr_analyzer_buffer_" + pidStr;
+	std::wstring mutex_name = L"Global\\dr_analyzer_mutex_" + pidStr;
+	std::wstring semaphore_sent_loc = L"Global\\dr_analyzer_sent_semaphore_" + pidStr;
+    std::wstring semaphore_received_loc = L"Global\\dr_analyzer_received_semaphore_" + pidStr;
+    
 	this->transportMapping = OpenFileMappingW(
 		FILE_MAP_WRITE,
 		FALSE,
@@ -66,20 +70,30 @@ DataTransport::DataTransport()
 	this->transportSemaphore = OpenSemaphoreW(
 		SEMAPHORE_ALL_ACCESS,
 		FALSE,
-		semaphore_loc.c_str()
+		semaphore_sent_loc.c_str()
 	);
-
+    
 	if (this->transportSemaphore == NULL) {
 		this->CloseSharedMemory();
 		throw std::exception("Connection error: Can't open Semaphore");
 	}
-
+    
+    this->transportReceivedSemaphore = OpenSemaphoreW(
+        SEMAPHORE_ALL_ACCESS,
+        FALSE,
+        semaphore_received_loc.c_str()
+    );
+    
+    if (this->transportReceivedSemaphore == NULL) {
+        this->CloseSharedMemory();
+        throw std::exception("Connection error: Can't open Received Semaphore");
+    }
+    
 	BuffObject* buff = new BuffObject();
 	buff->AddInfo(new GatherInfo(GatherType::GatherStarted, GatherFuncType::GatherConnection));
 	this->SendData(buff);
 
 	// Launch sender's thread
-
 	this->senderThread = std::thread(&DataTransport::SenderThreadFunc, this);
 }
 
@@ -117,7 +131,7 @@ void DataTransport::SenderThreadFunc()
 {
 	std::unique_lock<std::mutex> cvLock(this->queueOperEndedMutex);
 
-	DWORD waitRes;
+	DWORD waitRes = WAIT_OBJECT_0;
 
 	while (true) {
 		this->queueOperEndedCV.wait_for(cvLock, std::chrono::seconds(5));
@@ -136,12 +150,25 @@ void DataTransport::SenderThreadFunc()
 
 			PBYTE message = buff->ToMessage();
 
-			waitRes = WaitForSingleObject(this->transportMutex, INFINITE);
+			if((waitRes = WaitForSingleObject(this->transportMutex, 10000)) != WAIT_OBJECT_0)
+			{
+			    this->isDisconnecting = true;
+			    delete buff;
+			    delete[] message;
+			    break;
+			}
 
 			std::memcpy(this->transportView, message, buff->MessageSize());
 
 			ReleaseMutex(this->transportMutex);
 			ReleaseSemaphore(this->transportSemaphore, 1, NULL);
+			
+			if((waitRes = WaitForSingleObject(this->transportReceivedSemaphore, 10000)) != WAIT_OBJECT_0) {
+			    this->isDisconnecting = true;
+			    delete buff;
+			    delete[] message;
+			    break;
+			}
 			
 			this->queueOperMutex.lock();
 			this->buffQueue.pop();
@@ -153,8 +180,16 @@ void DataTransport::SenderThreadFunc()
 			this->queueOperMutex.unlock();
 			break;
 		}
-
+        
 		this->queueOperMutex.unlock();
+	}
+	
+	if(waitRes != WAIT_OBJECT_0) {
+	    ReleaseSemaphore(waiterSemaphore, 1, NULL);
+	    while(!this->buffQueue.empty()) {
+	        delete this->buffQueue.front();
+	        this->buffQueue.pop();
+	    }
 	}
 }
 
@@ -175,4 +210,8 @@ void DataTransport::CloseSharedMemory() {
 		CloseHandle(this->transportSemaphore);
 		this->transportSemaphore = NULL;
 	}
+	if (this->transportReceivedSemaphore != NULL) {
+	    CloseHandle(this->transportReceivedSemaphore);
+	    this->transportReceivedSemaphore = NULL;
+	} 
 }

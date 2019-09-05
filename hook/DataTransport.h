@@ -25,7 +25,8 @@ private:
 	PBYTE transportView = NULL;
 	HANDLE transportMutex = NULL;
 	HANDLE transportSemaphore = NULL;
-
+    HANDLE transportReceivedSemaphore = NULL;
+    
 	std::thread senderThread;
 	std::mutex queueOperMutex;
 
