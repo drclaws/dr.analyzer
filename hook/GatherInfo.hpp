@@ -15,8 +15,8 @@ public:
 
 	~GatherInfo();
 
-	buff_size_t GetSize();
-	PBYTE ToMessageFormat();
+	const buff_size_t GetSize() const;
+	PBYTE ToMessageFormat() const;
 
 private:
 	gather_flag_t type;

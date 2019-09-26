@@ -4,10 +4,9 @@
 
 #include <cstdlib>
 #include <string>
-#include <wchar.h>
 
-#include "DataTransport.h"
-#include "GatherInfo.h"
+#include "data_transportation.h"
+#include "GatherInfo.hpp"
 #include "flags.h"
 
 
@@ -230,11 +229,11 @@ bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
     return false;
 }
 
-inline void SendToDT(DataTransport *dataTransport, BuffObject **buffObj, GatherInfo *info) {
-    if (!(*buffObj)->AddInfo(info)) {
-        dataTransport->SendData(*buffObj);
-    	*buffObj = new BuffObject();
-    	(*buffObj)->AddInfo(info);
+inline void SendToDT(BuffObject * &buffObj, GatherInfo *info) {
+    if (!buffObj->AddInfo(info)) {
+        SendBuff(buffObj);
+    	buffObj = new BuffObject();
+    	buffObj->AddInfo(info);
     }
 }
 
@@ -245,14 +244,13 @@ inline PWSTR ErrorInfoInPWSTR() {
     return message;
 }
 
-void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff) {
+void SearchFileHandlesModern(BuffObject * &currBuff) {
     _NtQueryInformationProcess NtQueryInformationProcess =
         (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess");
 
     if (NtQueryInformationProcess == NULL) {
         lastErrorInfo = L"Can't find \"NtQueryInformationProcess\" function";
         SendToDT(
-                 dataTransport,
                  currBuff,
                  new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
@@ -261,7 +259,6 @@ void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff
     UCHAR fileHandleTypeNumber;
     if(!GetFileHandleTypeNumber(fileHandleTypeNumber)) {
         SendToDT(
-                 dataTransport,
                  currBuff,
                  new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
@@ -290,7 +287,6 @@ void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff
         if (handlesInfoSize > MAX_CONTAINER_SIZE) {
             lastErrorInfo = L"Process has too many handles";
             SendToDT(
-                dataTransport,
                 currBuff,
                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
             return;
@@ -300,7 +296,6 @@ void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff
     
     if (!NT_SUCCESS(status)) {
         SendToDT(
-            dataTransport,
             currBuff,
             new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad));
         std::free(handlesInfo);
@@ -312,7 +307,7 @@ void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff
         if(handleInfo->TypeIndex == fileHandleTypeNumber) {
             GatherInfo *tmpInfo = FileHandleToInfoObject(handleInfo->Handle, GatherFuncType::GatherFilesOnLoad);
             if (tmpInfo != NULL) {
-                SendToDT(dataTransport, currBuff, tmpInfo);
+                SendToDT(currBuff, tmpInfo);
             }
         }
     }
@@ -320,13 +315,12 @@ void SearchFileHandlesModern(DataTransport *dataTransport, BuffObject **currBuff
     std::free(handlesInfo);
 }
 
-void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff) {
+void SearchFileHandlesLegacy(BuffObject * &currBuff) {
     _NtQuerySystemInformation NtQuerySystemInformation = 
         (_NtQuerySystemInformation)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQuerySystemInformation");
     if (NtQuerySystemInformation == NULL) {
         lastErrorInfo = L"Can't find \"NtQuerySystemInformation\" function";
         SendToDT(
-                 dataTransport,
                  currBuff,
                  new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
@@ -334,7 +328,6 @@ void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff
     UCHAR fileHandleTypeNumber;
     if(!GetFileHandleTypeNumber(fileHandleTypeNumber)) {
         SendToDT(
-                 dataTransport,
                  currBuff,
                  new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
         return;
@@ -361,7 +354,6 @@ void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff
         if (handlesInfoSize > MAX_CONTAINER_SIZE) {
             lastErrorInfo = L"System has too many handles";
             SendToDT(
-                dataTransport,
                 currBuff,
                 new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad, ErrorInfoInPWSTR(), (UINT32)lastErrorInfo.length()));
             return;
@@ -371,7 +363,6 @@ void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff
     
     if (!NT_SUCCESS(status)) {
         SendToDT(
-            dataTransport,
             currBuff,
             new GatherInfo(GatherType::GatherFilesOnLoadNotGathered, GatherFuncType::GatherFilesOnLoad));
         std::free(handlesInfo);
@@ -385,7 +376,7 @@ void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff
         if(handleInfo->Pid == pid && handleInfo->TypeIndex == fileHandleTypeNumber) {
             GatherInfo *tmpInfo = FileHandleToInfoObject((HANDLE)handleInfo->Handle, GatherFuncType::GatherFilesOnLoad);
             if (tmpInfo != NULL) {
-                SendToDT(dataTransport, currBuff, tmpInfo);
+                SendToDT(currBuff, tmpInfo);
             }
         }
     }
@@ -393,12 +384,12 @@ void SearchFileHandlesLegacy(DataTransport *dataTransport, BuffObject **currBuff
     std::free(handlesInfo);
 }
 
-void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff) {
+void SearchFileHandles(BuffObject * &currBuff) {
     if(isSupportInfoProc) {
-        SearchFileHandlesModern(dataTransport, currBuff);
+        SearchFileHandlesModern(currBuff);
     }
     else {
-        SearchFileHandlesLegacy(dataTransport, currBuff);
+        SearchFileHandlesLegacy(currBuff);
     }
 }
 

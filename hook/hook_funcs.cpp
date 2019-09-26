@@ -5,10 +5,8 @@
 
 #include "hook.h"
 #include "flags.h"
-#include "Gatherer.h"
-#include "GatherInfo.h"
-
-#include <stdio.h>
+#include "gathering.h"
+#include "GatherInfo.hpp"
 
 
 typedef HANDLE(WINAPI *pCreateFile2)(
@@ -55,7 +53,7 @@ inline void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {
     GatherInfo* tmpInfo = FileHandleToInfoObject(fileHandle, funcCalled);
     if (tmpInfo != NULL) {
-	    gatherer->AddToBuff(FileHandleToInfoObject(fileHandle, funcCalled));
+	    AddToBuff(FileHandleToInfoObject(fileHandle, funcCalled));
     }
 }
 
@@ -181,7 +179,7 @@ inline void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled)
 {
     GatherInfo* tmpInfo = LibraryHmoduleToInfoObject(libHmodule, funcCalled);
     if (tmpInfo != NULL) {
-        gatherer->AddToBuff(LibraryHmoduleToInfoObject(libHmodule, funcCalled));
+        AddToBuff(LibraryHmoduleToInfoObject(libHmodule, funcCalled));
     }
 }
 

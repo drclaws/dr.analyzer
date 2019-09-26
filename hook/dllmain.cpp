@@ -2,17 +2,14 @@
 
 #include <detours.h>
 #include <string>
-#include <iostream>
 #include "hook_funcs.h"
 
-#include "Gatherer.h"
-#include "GatherInfo.h"
-#include "flags.h"
+#include "gathering.h"
 #include "hook.h"
 
 
 DWORD WINAPI GatherThreadFunc(LPVOID) {
-	gatherer->TransferThreadFunc();
+	GatherThreadFunc();
 	ExitThread(0);
 }
 
@@ -34,7 +31,7 @@ DWORD WINAPI WaiterForCloseFunc(LPVOID) {
 	else {
 		WaitForSingleObject(waiterSemaphore, INFINITE);
 
-		gatherer->SetDisconnect();
+		SetDisconnect();
 
 		WaitForSingleObject(gatherThread, INFINITE);
 		CloseHandle(gatherThread);
@@ -81,18 +78,13 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			return FALSE;
 		}
 		
-		gatherer = new Gatherer();
 		if ((waiterThread = CreateThread(NULL, 0, &WaiterForCloseFunc, NULL, 0, NULL)) == NULL) {
-			delete gatherer;
 			UndetourExitProcess();
 			CloseSemaphores();
 			return FALSE;
 		}
 	}
 	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
-	    if (gatherer != NULL) {
-		    delete gatherer;
-		}
 		UndetourExitProcess();
 		CloseSemaphores();
 	}

@@ -82,27 +82,27 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BuffObject.h" />
-    <ClInclude Include="DataTransport.h" />
+    <ClInclude Include="BuffObject.hpp" />
     <ClInclude Include="flags.h" />
-    <ClInclude Include="Gatherer.h" />
     <ClInclude Include="hook.h" />
     <ClInclude Include="hook_funcs.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="GatherInfo.h" />
+    <ClInclude Include="GatherInfo.hpp" />
+    <ClInclude Include="gathering.h" />
+    <ClInclude Include="data_transportation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BuffObject.cpp" />
-    <ClCompile Include="DataTransport.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="Gatherer.cpp" />
     <ClCompile Include="hook.cpp" />
     <ClCompile Include="hook_funcs.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="GatherInfo.cpp" />
+    <ClCompile Include="gathering.cpp" />
+    <ClCompile Include="data_transportation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

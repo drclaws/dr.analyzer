@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#include "GatherInfo.h"
+#include "GatherInfo.hpp"
 
 #include "flags.h"
 
@@ -17,17 +17,14 @@ public:
 	BuffObject();
 	~BuffObject();
 
-	bool AddInfo(GatherInfo* info);
-	bool IsEmpty();
-	PBYTE ToMessage();
-	buff_size_t MessageSize();
+	const bool AddInfo(GatherInfo* info);
+	const bool IsEmpty() const;
+	PBYTE ToMessage() const;
+	const buff_size_t MessageSize() const;
 
 private:
 	INT32 length = 0;
 	buff_size_t size = 0;
-
-	INT32 remainsLength = BUFF_MAX_LENGTH;
-	INT32 remainsSize = BUFF_MAX_SIZE;
 	
-	GatherInfo** buffer;
+	GatherInfo* buffer[BUFF_MAX_LENGTH];
 };

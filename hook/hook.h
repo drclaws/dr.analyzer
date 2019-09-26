@@ -1,9 +1,7 @@
 #pragma once
 #include "stdafx.h"
 
-#include "BuffObject.h"
-#include "DataTransport.h"
-#include "flags.h"
+#include "BuffObject.hpp"
 
 
 extern HMODULE libHModule;
@@ -13,6 +11,6 @@ extern HANDLE waiterSemaphore;
 
 extern HANDLE freeLibSemaphore;
 
-void SearchFileHandles(DataTransport *dataTransport, BuffObject **currBuff);
+void SearchFileHandles(BuffObject * &currBuff);
 
 void GetFeaturesSupport();

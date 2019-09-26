@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "GatherInfo.h"
+#include "GatherInfo.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -23,13 +23,6 @@ GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled) {
 	this->name = NULL;
 }
 
-/*GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, INT32 emergencyCode) {
-	this->type = type;
-	this->funcCalled = funcCalled;
-	this->nameLength = emergencyCode;
-	this->name = NULL;
-}*/
-
 GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name, UINT32 nameLength) {
 	this->type = type | GatherType::GatherHasValue;
 	this->funcCalled = funcCalled;
@@ -37,23 +30,13 @@ GatherInfo::GatherInfo(gather_flag_t type, gather_flag_t funcCalled, LPWSTR name
 	this->name = name;
 }
 
-buff_size_t GatherInfo::GetSize() {
-	/*if (this->nameLength > 0) {
-		return sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength) + this->nameLength * sizeof(WCHAR);
-	}
-	else if (this->nameLength < 0)
-	{
-		return sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength);
-	}
-	else {
-		return sizeof(this->type) + sizeof(this->funcCalled);
-	}*/
+const buff_size_t GatherInfo::GetSize() const {
 	return this->nameLength > 0
 	    ? sizeof(this->type) + sizeof(this->funcCalled) + sizeof(this->nameLength) + this->nameLength * sizeof(WCHAR)
 	    : sizeof(this->type) + sizeof(this->funcCalled);
 }
 
-PBYTE GatherInfo::ToMessageFormat()
+PBYTE GatherInfo::ToMessageFormat() const
 {
 	buff_size_t sizeBuff = this->GetSize();
 	PBYTE buff = new BYTE[sizeBuff];
@@ -107,10 +90,10 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
         if(sizeSet == MAX_NAME_LENGTH) {
             return new GatherInfo(GatherType::GatherModulePathToBig, funcCalled);
         }
-        sizeSet = sizeSet * 2 + 1;
-        if(sizeSet > MAX_NAME_LENGTH) {
-            sizeSet = MAX_NAME_LENGTH;
-        }
+        DWORD newSize = sizeSet * 2 + 1;
+        sizeSet = newSize > MAX_NAME_LENGTH
+            ? MAX_NAME_LENGTH
+            : newSize;
         filePathRes = (LPWSTR)std::malloc(sizeSet * sizeof(WCHAR));
     }
     
