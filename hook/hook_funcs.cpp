@@ -53,7 +53,7 @@ inline void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
 {
     GatherInfo* tmpInfo = FileHandleToInfoObject(fileHandle, funcCalled);
     if (tmpInfo != NULL) {
-	    AddToBuff(FileHandleToInfoObject(fileHandle, funcCalled));
+	    AddToBuff(tmpInfo);
     }
 }
 
@@ -179,7 +179,7 @@ inline void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled)
 {
     GatherInfo* tmpInfo = LibraryHmoduleToInfoObject(libHmodule, funcCalled);
     if (tmpInfo != NULL) {
-        AddToBuff(LibraryHmoduleToInfoObject(libHmodule, funcCalled));
+        AddToBuff(tmpInfo);
     }
 }
 
