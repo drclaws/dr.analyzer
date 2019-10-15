@@ -1,7 +1,7 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 
 #include <detours.h>
-#include <string>
+#include <stdlib.h>
 #include "hook_funcs.h"
 
 #include "gathering.h"
@@ -63,8 +63,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			return FALSE;
 		}
 
-		std::wstring waiterSemaphoreName = L"Global\\dr_analyzer_waiter_semaphore_" + std::to_wstring(GetCurrentProcessId());
-		if ((waiterSemaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS, FALSE, waiterSemaphoreName.c_str())) == NULL) {
+	    wchar_t semaphore_path[47] = L"Global\\dr_analyzer_waiter_semaphore_";
+	    const ULONG_PTR pid_start = 36 * sizeof(wchar_t);
+	    const int ul_dec_max_size = 10;
+	    if (_ultow_s(
+                GetCurrentProcessId(),
+                (wchar_t*)((ULONG_PTR)semaphore_path + pid_start),
+                ul_dec_max_size,
+                ul_dec_max_size) != NULL) {
+              return FALSE;      
+        }
+		if ((waiterSemaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS, FALSE, semaphore_path)) == NULL) {
 			return FALSE;
 		}
 
