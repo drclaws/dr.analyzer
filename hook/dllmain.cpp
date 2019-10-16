@@ -14,10 +14,15 @@ DWORD WINAPI GatherThreadFunc(LPVOID) {
 }
 
 inline void CloseWaiter(int errCode) {
+    //Check if semaphore has already been released
 	if (WaitForSingleObject(freeLibSemaphore, 0) == WAIT_OBJECT_0) {
+	    //No, so waiter was called from out of the process.
+	    //The library must be freed
 		FreeLibraryAndExitThread(libHModule, errCode);
 	}
 	else {
+        //Yes, so it means that detoured ExitProcess was called.
+        //Only the thread must to be freed
 		ExitThread(errCode);
 	}
 }
@@ -51,6 +56,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                      )
 {
 	if (DetourIsHelperProcess()) {
+	    // Means that this is a helper process for loading library in process of another architecture.
+	    // Will be helpful when it will be implemented multiple architecture of process info gathering
 		return TRUE;
 	}
 
@@ -62,15 +69,29 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (!GetOrigAddresses()) {
 			return FALSE;
 		}
-
-	    wchar_t semaphore_path[47] = L"Global\\dr_analyzer_waiter_semaphore_";
-	    const ULONG_PTR pid_start = 36 * sizeof(wchar_t);
-	    const int ul_dec_max_size = 10;
+        
+        // Because it's possible in DllMain that CRT or STL library
+        // hasn't been loaded yet, only WinAPI from Kernel32 and Native API can be used.
+        // Therefore, it's necessary to use this construction to generate the semaphore name by pid.
+        #ifndef SEM_NAME_TEMP
+        #define SEM_NAME_TEMP L"Global\\dr_analyzer_waiter_semaphore_"
+        
+        const ULONG_PTR pid_start = sizeof(SEM_NAME_TEMP) - sizeof(wchar_t);
+        const int ul_dec_max_size = 11,
+            arr_size = pid_start / sizeof(wchar_t) + ul_dec_max_size;
+        
+	    wchar_t semaphore_path[arr_size] = SEM_NAME_TEMP;
+	    
+	    #undef SEM_NAME_TEMP
+	    #else
+	    #error Macros SEM_NAME_TEMP is already defined somewhere else 
+	    #endif //SEM_NAME_TEMP
+	    
 	    if (_ultow_s(
                 GetCurrentProcessId(),
                 (wchar_t*)((ULONG_PTR)semaphore_path + pid_start),
-                ul_dec_max_size,
-                ul_dec_max_size) != NULL) {
+                ul_dec_max_size + 1,
+                10) != NULL) {
               return FALSE;      
         }
 		if ((waiterSemaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS, FALSE, semaphore_path)) == NULL) {
@@ -93,7 +114,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			return FALSE;
 		}
 	}
-	else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
+	else if (ul_reason_for_call == DLL_PROCESS_DETACH && !DetourIsHelperProcess()) {
 		UndetourExitProcess();
 		CloseSemaphores();
 	}
