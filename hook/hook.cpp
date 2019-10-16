@@ -137,6 +137,7 @@ HANDLE freeLibSemaphore = NULL;
 bool isSupportInfoProc = false;
 bool isSupportTypeIndexInHandleInfoProc = false;
 
+// String for error message that will be added to info buff
 std::wstring lastErrorInfo = L"";
 
 bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
@@ -213,6 +214,7 @@ bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
             }
             return true;
         }
+        // Just google this expression if you don't understand
         typeInfo = (POBJECT_TYPE_INFORMATION)(
             (ULONG_PTR)typeInfo + (ULONG_PTR)(
                 sizeof(OBJECT_TYPE_INFORMATION) + (
