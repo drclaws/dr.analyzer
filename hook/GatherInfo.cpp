@@ -58,24 +58,23 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 	DWORD sizeGet, sizeSet = baseArraySize;
     LPWSTR filePathRes = (LPWSTR)std::malloc(sizeof(WCHAR) * sizeSet);
     
-    sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeSet - 1, FILE_NAME_NORMALIZED);
+    sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeSet, FILE_NAME_NORMALIZED);
     
     if (sizeGet == 0) {
         std::free(filePathRes);
     	return NULL;
     }
     
-    if (sizeGet > sizeSet) {
+    if (sizeGet >= sizeSet) {
     	std::free(filePathRes);
         if (sizeGet > MAX_NAME_LENGTH) {
             return new GatherInfo(GatherType::GatherFilePathToBig, funcCalled);
         }
     	filePathRes = (LPWSTR)std::malloc(sizeof(WCHAR) * sizeGet);
-    	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet - (DWORD)1, FILE_NAME_NORMALIZED);
+    	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet, FILE_NAME_NORMALIZED);
     }
-    else {
-    	filePathRes = (LPWSTR)std::realloc(filePathRes, sizeof(WCHAR) * (sizeGet + 1));
-    }
+    
+    filePathRes = (LPWSTR)std::realloc(filePathRes, sizeof(WCHAR) * sizeGet);
     
     return new GatherInfo(GatherType::GatherFile, funcCalled, filePathRes, sizeGet);
 }
@@ -101,9 +100,7 @@ GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCa
         return NULL;
     }
     
-    if(sizeSet != sizeGet + 1) {
-        filePathRes = (LPWSTR)std::realloc(filePathRes, (sizeGet + 1) * sizeof(WCHAR));
-    }
+    filePathRes = (LPWSTR)std::realloc(filePathRes, sizeGet * sizeof(WCHAR));
     
     return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, sizeGet);
 }
