@@ -170,6 +170,7 @@ void SendBuff(BuffObject* info)
 {
 	std::unique_lock<std::mutex> operationLock(queueOperMutex);
 	if (isDisconnecting) {
+	    delete info;
 		return;
 	}
 
