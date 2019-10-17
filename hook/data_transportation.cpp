@@ -198,13 +198,15 @@ void SenderThreadFunc()
 
 		while (!buffQueue.empty()) {
 			BuffObject* buff = buffQueue.front();
-
+			buffQueue.pop();
+			
 			queueOperMutex.unlock();
 
 			PBYTE message = buff->ToMessage();
 
 			if((waitRes = WaitForSingleObject(transportMutex, 10000)) != WAIT_OBJECT_0)
 			{
+			    queueOperMutex.lock();
 			    isDisconnecting = true;
 			    delete buff;
 			    delete[] message;
@@ -217,16 +219,16 @@ void SenderThreadFunc()
 			ReleaseSemaphore(transportSemaphore, 1, NULL);
 			
 			if((waitRes = WaitForSingleObject(transportReceivedSemaphore, 10000)) != WAIT_OBJECT_0) {
+			    queueOperMutex.lock();
 			    isDisconnecting = true;
 			    delete buff;
 			    delete[] message;
 			    break;
 			}
 			
-			queueOperMutex.lock();
-			buffQueue.pop();
 			delete buff;
 			delete[] message;
+			queueOperMutex.lock();
 		}
 
 		if (isDisconnecting) {
@@ -239,9 +241,9 @@ void SenderThreadFunc()
 	
 	if(waitRes != WAIT_OBJECT_0) {
 	    ReleaseSemaphore(waiterSemaphore, 1, NULL);
-	    while(!buffQueue.empty()) {
-	        delete buffQueue.front();
-	        buffQueue.pop();
-	    }
 	}
+	while(!buffQueue.empty()) {
+        delete buffQueue.front();
+    	buffQueue.pop();
+    }
 }
