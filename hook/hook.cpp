@@ -240,9 +240,9 @@ inline void SendToDT(BuffObject * &buffObj, GatherInfo *info) {
 }
 
 inline PWSTR ErrorInfoInPWSTR() {
-    size_t size = sizeof(WCHAR) * (lastErrorInfo.length() + 1);
+    size_t size = sizeof(WCHAR) * lastErrorInfo.length();
     PWSTR message = (PWSTR)std::malloc(size);
-    wcscpy_s(message, size, lastErrorInfo.c_str());
+    std::memcpy(message, lastErrorInfo.c_str(), size);
     return message;
 }
 
