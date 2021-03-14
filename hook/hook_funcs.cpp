@@ -71,7 +71,7 @@ HANDLE WINAPI NewCreateFile2(
 							dwCreationDisposition,
 							pCreateExParams);
 
-	if (fileHandle != NULL) {
+	if (fileHandle != INVALID_HANDLE_VALUE) {
 		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFile2);
 	}
 
@@ -96,7 +96,7 @@ HANDLE WINAPI NewCreateFileA(
 							dwFlagsAndAttributes,
 							hTemplateFile);
 
-	if (fileHandle != NULL) {
+	if (fileHandle != INVALID_HANDLE_VALUE) {
 		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileA);
 	}
 
@@ -121,7 +121,7 @@ HANDLE WINAPI NewCreateFileW(
 							dwFlagsAndAttributes,
 							hTemplateFile);
 
-	if (fileHandle != NULL) {
+	if (fileHandle != INVALID_HANDLE_VALUE) {
 		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileW);
 	}
 
@@ -144,7 +144,7 @@ HANDLE WINAPI NewOpenFileById(
 							lpSecurityAttributes,
 							dwFlagsAndAttributes);
 
-	if (fileHandle != NULL) {
+	if (fileHandle != INVALID_HANDLE_VALUE) {
 		GatherFileInfo(fileHandle, GatherFuncType::GatherOpenFileById);
 	}
 
