@@ -19,10 +19,10 @@ namespace DrAnalyzer.Analyzer
                 if (!Injector.dllPathSet)
                 {
 #if DEBUG
-                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\..\\Release\\hook.dll";
+                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\..\\Release\\hook.x64.dll";
                     Injector.dllPath = System.IO.Path.GetFullPath(dllPath);
 #else
-                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\hook.dll";
+                    Injector.dllPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\hook.x64.dll";
 #endif
                     Injector.dllPathSet = true;
                 }
