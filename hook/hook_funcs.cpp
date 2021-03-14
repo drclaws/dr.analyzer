@@ -49,14 +49,6 @@ pCreateFileW  OrigCreateFileW = NULL;
 pOpenFileById OrigOpenFileById = NULL;
 
 
-inline void GatherFileInfo(HANDLE fileHandle, gather_flag_t funcCalled)
-{
-    GatherInfo* tmpInfo = FileHandleToInfoObject(fileHandle, funcCalled);
-    if (tmpInfo != NULL) {
-	    AddToBuff(tmpInfo);
-    }
-}
-
 HANDLE WINAPI NewCreateFile2(
 	LPCWSTR                           lpFileName,
 	DWORD                             dwDesiredAccess,
@@ -71,9 +63,8 @@ HANDLE WINAPI NewCreateFile2(
 							dwCreationDisposition,
 							pCreateExParams);
 
-	if (fileHandle != INVALID_HANDLE_VALUE) {
-		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFile2);
-	}
+	if (fileHandle != INVALID_HANDLE_VALUE)
+		AddToBuff(FileHandleToInfoObject(fileHandle, GatherFuncType::GatherCreateFile2));
 
 	return fileHandle;
 }
@@ -96,9 +87,8 @@ HANDLE WINAPI NewCreateFileA(
 							dwFlagsAndAttributes,
 							hTemplateFile);
 
-	if (fileHandle != INVALID_HANDLE_VALUE) {
-		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileA);
-	}
+	if (fileHandle != INVALID_HANDLE_VALUE)
+		AddToBuff(FileHandleToInfoObject(fileHandle, GatherFuncType::GatherCreateFileA));
 
 	return fileHandle;
 }
@@ -121,9 +111,8 @@ HANDLE WINAPI NewCreateFileW(
 							dwFlagsAndAttributes,
 							hTemplateFile);
 
-	if (fileHandle != INVALID_HANDLE_VALUE) {
-		GatherFileInfo(fileHandle, GatherFuncType::GatherCreateFileW);
-	}
+	if (fileHandle != INVALID_HANDLE_VALUE)
+		AddToBuff(FileHandleToInfoObject(fileHandle, GatherFuncType::GatherCreateFileW));
 
 	return fileHandle;
 }
@@ -144,9 +133,8 @@ HANDLE WINAPI NewOpenFileById(
 							lpSecurityAttributes,
 							dwFlagsAndAttributes);
 
-	if (fileHandle != INVALID_HANDLE_VALUE) {
-		GatherFileInfo(fileHandle, GatherFuncType::GatherOpenFileById);
-	}
+	if (fileHandle != INVALID_HANDLE_VALUE)
+		AddToBuff(FileHandleToInfoObject(fileHandle, GatherFuncType::GatherOpenFileById));
 
 	return fileHandle;
 }
@@ -175,22 +163,13 @@ pLoadLibraryExA OrigLoadLibraryExA = NULL;
 pLoadLibraryExW OrigLoadLibraryExW = NULL;
 
 
-inline void GatherLibraryInfo(HMODULE libHmodule, gather_flag_t funcCalled)
-{
-    GatherInfo* tmpInfo = LibraryHmoduleToInfoObject(libHmodule, funcCalled);
-    if (tmpInfo != NULL) {
-        AddToBuff(tmpInfo);
-    }
-}
-
 HMODULE WINAPI NewLoadLibraryA(
 	LPCSTR lpLibFileName
 ) {
 	HMODULE libHmodule = OrigLoadLibraryA(lpLibFileName);
 
-	if (libHmodule != NULL) {
-		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryA);
-	}
+	if (libHmodule != NULL)
+		AddToBuff(LibraryHmoduleToInfoObject(libHmodule, GatherFuncType::GatherLoadLibraryA));
 
 	return libHmodule;
 }
@@ -200,9 +179,8 @@ HMODULE WINAPI NewLoadLibraryW(
 ) {
 	HMODULE libHmodule = OrigLoadLibraryW(lpLibFileName);
 
-	if (libHmodule != NULL) {
-		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryW);
-	}
+	if (libHmodule != NULL)
+		AddToBuff(LibraryHmoduleToInfoObject(libHmodule, GatherFuncType::GatherLoadLibraryW));
 
 	return libHmodule;
 }
@@ -217,9 +195,8 @@ HMODULE WINAPI NewLoadLibraryExA(
 							hFile,
 							dwFlags);
 
-	if (libHmodule != NULL) {
-		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryExA);
-	}
+	if (libHmodule != NULL)
+		AddToBuff(LibraryHmoduleToInfoObject(libHmodule, GatherFuncType::GatherLoadLibraryExA));
 
 	return libHmodule;
 }
@@ -234,9 +211,8 @@ HMODULE WINAPI NewLoadLibraryExW(
 							hFile,
 							dwFlags);
 
-	if (libHmodule != NULL) {
-		GatherLibraryInfo(libHmodule, GatherFuncType::GatherLoadLibraryExW);
-	}
+	if (libHmodule != NULL)
+		AddToBuff(LibraryHmoduleToInfoObject(libHmodule, GatherFuncType::GatherLoadLibraryExW));
 
 	return libHmodule;
 }
@@ -260,35 +236,26 @@ void WINAPI NewExitProcess(UINT uExitCode) {
 
 bool GetOrigAddresses()
 {
-	if ((OrigCreateFile2 = (pCreateFile2)DetourFindFunction("kernel32.dll", "CreateFile2")) == NULL) {
+	if ((OrigCreateFile2 = (pCreateFile2)DetourFindFunction("kernel32.dll", "CreateFile2")) == NULL)
 		return false;
-	}
-	if ((OrigCreateFileA = (pCreateFileA)DetourFindFunction("kernel32.dll", "CreateFileA")) == NULL) {
+	if ((OrigCreateFileA = (pCreateFileA)DetourFindFunction("kernel32.dll", "CreateFileA")) == NULL)
 		return false;
-	}
-	if ((OrigCreateFileW = (pCreateFileW)DetourFindFunction("kernel32.dll", "CreateFileW")) == NULL) {
+	if ((OrigCreateFileW = (pCreateFileW)DetourFindFunction("kernel32.dll", "CreateFileW")) == NULL)
 		return false;
-	}
-	if ((OrigOpenFileById = (pOpenFileById)DetourFindFunction("kernel32.dll", "OpenFileById")) == NULL) {
+	if ((OrigOpenFileById = (pOpenFileById)DetourFindFunction("kernel32.dll", "OpenFileById")) == NULL)
 		return false;
-	}
 
-	if ((OrigLoadLibraryA = (pLoadLibraryA)DetourFindFunction("kernel32.dll", "LoadLibraryA")) == NULL) {
+	if ((OrigLoadLibraryA = (pLoadLibraryA)DetourFindFunction("kernel32.dll", "LoadLibraryA")) == NULL)
 		return false;
-	}
-	if ((OrigLoadLibraryW = (pLoadLibraryW)DetourFindFunction("kernel32.dll", "LoadLibraryW")) == NULL) {
+	if ((OrigLoadLibraryW = (pLoadLibraryW)DetourFindFunction("kernel32.dll", "LoadLibraryW")) == NULL)
 		return false;
-	}
-	if ((OrigLoadLibraryExA = (pLoadLibraryExA)DetourFindFunction("kernel32.dll", "LoadLibraryExA")) == NULL) {
+	if ((OrigLoadLibraryExA = (pLoadLibraryExA)DetourFindFunction("kernel32.dll", "LoadLibraryExA")) == NULL)
 		return false;
-	}
-	if ((OrigLoadLibraryExW = (pLoadLibraryExW)DetourFindFunction("kernel32.dll", "LoadLibraryExW")) == NULL) {
+	if ((OrigLoadLibraryExW = (pLoadLibraryExW)DetourFindFunction("kernel32.dll", "LoadLibraryExW")) == NULL)
 		return false;
-	}
 	
-	if ((OrigExitProcess = (pExitProcess)DetourFindFunction("kernel32.dll", "ExitProcess")) == NULL) {
+	if ((OrigExitProcess = (pExitProcess)DetourFindFunction("kernel32.dll", "ExitProcess")) == NULL)
 		return false;
-	}
 
 	return true;
 }
@@ -308,9 +275,9 @@ void UndetourExitProcess() {
 }
 
 bool DetourFuncs() {
-    if (DetourTransactionBegin() != NO_ERROR) {
+    if (DetourTransactionBegin() != NO_ERROR)
 		return false;
-	}
+
 	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
 		DetourTransactionAbort();
 		return false;
@@ -359,9 +326,8 @@ bool DetourFuncs() {
 }
 
 bool UndetourFuncs() {
-    if (DetourTransactionBegin() != NO_ERROR) {
+    if (DetourTransactionBegin() != NO_ERROR)
 		return false;
-	}
 	if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) {
 		DetourTransactionAbort();
 		return false;

@@ -76,9 +76,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         #ifndef SEM_NAME_TEMP
         #define SEM_NAME_TEMP L"Global\\dr_analyzer_waiter_semaphore_"
         
-        const ULONG_PTR pid_start = sizeof(SEM_NAME_TEMP) - sizeof(wchar_t);
-        const int ul_dec_max_size = 11,
-            arr_size = pid_start / sizeof(wchar_t) + ul_dec_max_size;
+        const size_t pid_start = sizeof(SEM_NAME_TEMP) / sizeof(wchar_t) - 1;
+        const size_t ul_dec_max_size = 11,
+            arr_size = sizeof(SEM_NAME_TEMP) / sizeof(wchar_t) + ul_dec_max_size;
         
 	    wchar_t semaphore_path[arr_size] = SEM_NAME_TEMP;
 	    
@@ -89,7 +89,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	    
 	    if (_ultow_s(
                 GetCurrentProcessId(),
-                (wchar_t*)((ULONG_PTR)semaphore_path + pid_start),
+				&semaphore_path[pid_start],
                 ul_dec_max_size + 1,
                 10) != NULL) {
               return FALSE;      

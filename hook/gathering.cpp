@@ -93,6 +93,9 @@ void GatherThreadFunc() {
 }
 
 void AddToBuff(GatherInfo *info) {
+	if (info == nullptr)
+		return; // TODO Remove after implementing all messages
+
 	addUsingCount++;
 	if (isDisconnecting) {
 		delete info;
@@ -137,8 +140,8 @@ void AddLoadedResToBuff() {
 	DWORD modulesLength = 1023;
 	DWORD modulesSizeNeeded, modulesAmount;
 	
-	HMODULE *hModules = new HMODULE[modulesLength];
-	BuffObject *buffObj = new BuffObject();
+	auto hModules = new HMODULE[modulesLength];
+	auto buffObj = new BuffObject();
 	GatherInfo* tmpInfo;
 	
 	BOOL status;

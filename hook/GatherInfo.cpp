@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
 
 #include "flags.h"
 
@@ -39,9 +40,9 @@ const buff_size_t GatherInfo::GetSize() const {
 PBYTE GatherInfo::ToMessageFormat() const
 {
 	buff_size_t sizeBuff = this->GetSize();
-	PBYTE buff = new BYTE[sizeBuff];
+    uint8_t* buff = new uint8_t[sizeBuff];
 	
-	std::memcpy(buff, &this->type, sizeof(this->type));
+	std::memcpy((void*)buff, &this->type, sizeof(this->type));
 	std::memcpy(buff + sizeof(this->type), &this->funcCalled, sizeof(this->funcCalled));
 	if (this->nameLength != 0) {
 		std::memcpy(buff + (sizeof(this->type) + sizeof(this->funcCalled)), &this->nameLength, sizeof(this->nameLength));
@@ -56,13 +57,16 @@ PBYTE GatherInfo::ToMessageFormat() const
 GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
 {
 	DWORD sizeGet, sizeSet = baseArraySize;
-    LPWSTR filePathRes = (LPWSTR)std::malloc(sizeof(WCHAR) * sizeSet);
+
+    LPWSTR filePathRes;
+    if ((filePathRes = static_cast<LPWSTR>(std::malloc(sizeof(WCHAR) * sizeSet))) == NULL)
+        return nullptr; // TODO Send error of memory allocation
     
     sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeSet, FILE_NAME_NORMALIZED);
     
     if (sizeGet == 0) {
         std::free(filePathRes);
-    	return NULL;
+        return nullptr; // TODO Send error of getting file name
     }
     
     if (sizeGet >= sizeSet) {
@@ -70,37 +74,56 @@ GatherInfo * FileHandleToInfoObject(HANDLE fileHandle, gather_flag_t funcCalled)
         if (sizeGet > MAX_NAME_LENGTH) {
             return new GatherInfo(GatherType::GatherFilePathToBig, funcCalled);
         }
-    	filePathRes = (LPWSTR)std::malloc(sizeof(WCHAR) * sizeGet);
+
+        if ((filePathRes = static_cast<LPWSTR>(std::malloc(sizeof(WCHAR) * sizeSet))) == NULL)
+            return nullptr;
+
     	sizeGet = GetFinalPathNameByHandleW(fileHandle, filePathRes, sizeGet, FILE_NAME_NORMALIZED);
     }
-    
-    filePathRes = (LPWSTR)std::realloc(filePathRes, sizeof(WCHAR) * sizeGet);
-    
-    return new GatherInfo(GatherType::GatherFile, funcCalled, filePathRes, sizeGet);
+
+    auto finalPathRes = static_cast<LPWSTR>(std::realloc(filePathRes, sizeof(WCHAR) * sizeGet));
+
+    if (finalPathRes == nullptr)
+    {
+        std::free(filePathRes);
+        return nullptr; // TODO Send error of memory allocation
+    }
+    else
+        return new GatherInfo(GatherType::GatherFile, funcCalled, finalPathRes, sizeGet);
 }
 
 GatherInfo * LibraryHmoduleToInfoObject(HMODULE libHmodule, gather_flag_t funcCalled)
 {	
 	DWORD sizeGet, sizeSet = baseArraySize;
-    LPWSTR filePathRes = (LPWSTR)std::malloc(sizeSet * sizeof(WCHAR));
-        
+    LPWSTR filePathRes;
+    
+    if ((filePathRes = static_cast<LPWSTR>(std::malloc(sizeSet * sizeof(WCHAR)))) == NULL)
+        return nullptr; // TODO Send error of memory allocation
+
     while((sizeGet = GetModuleFileNameW(libHmodule, filePathRes, sizeSet)) == sizeSet) {
         std::free(filePathRes);
-        if(sizeSet == MAX_NAME_LENGTH) {
+        if(sizeSet == MAX_NAME_LENGTH)
             return new GatherInfo(GatherType::GatherModulePathToBig, funcCalled);
-        }
         DWORD newSize = sizeSet * 2 + 1;
         sizeSet = newSize > MAX_NAME_LENGTH
             ? MAX_NAME_LENGTH
             : newSize;
-        filePathRes = (LPWSTR)std::malloc(sizeSet * sizeof(WCHAR));
+        filePathRes = static_cast<LPWSTR>(std::malloc(sizeSet * sizeof(WCHAR)));
+        if (filePathRes == nullptr)
+            return nullptr; // TODO Send error of memory allocation
     }
     
     if(sizeGet == 0) {
-        return NULL;
+        return nullptr; // TODO Send error of getting file name
     }
     
-    filePathRes = (LPWSTR)std::realloc(filePathRes, sizeGet * sizeof(WCHAR));
-    
-    return new GatherInfo(GatherType::GatherLibrary, funcCalled, filePathRes, sizeGet);
+    auto finalPathRes = static_cast<LPWSTR>(std::realloc(filePathRes, sizeGet * sizeof(WCHAR)));
+
+    if (finalPathRes == nullptr)
+    {
+        std::free(filePathRes);
+        return nullptr; // TODO Send error of memory allocation
+    }
+    else
+        return new GatherInfo(GatherType::GatherLibrary, funcCalled, finalPathRes, sizeGet);
 }

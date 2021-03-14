@@ -137,17 +137,20 @@ HANDLE freeLibSemaphore = NULL;
 bool isSupportInfoProc = false;
 bool isSupportTypeIndexInHandleInfoProc = false;
 
-// String for error message that will be added to info buff
+// String for error message that will be added to info buffer
 std::wstring lastErrorInfo = L"";
 
 bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
-    HMODULE ntdllHandle = GetModuleHandleA("ntdll.dll");
-    _NtQueryObject NtQueryObject =
+    auto ntdllHandle = GetModuleHandleA("ntdll.dll");
+#pragma warning(disable : 6387)
+    auto NtQueryObject =
             (_NtQueryObject)GetProcAddress(ntdllHandle, "NtQueryObject");
-    _RtlEqualUnicodeString RtlEqualUnicodeString =
+    auto RtlEqualUnicodeString =
             (_RtlEqualUnicodeString)GetProcAddress(ntdllHandle, "RtlEqualUnicodeString");
-    _RtlInitUnicodeString RtlInitUnicodeString = 
+    auto RtlInitUnicodeString =
             (_RtlInitUnicodeString)GetProcAddress(ntdllHandle, "RtlInitUnicodeString");
+#pragma warning(default : 6387)
+
     if(NtQueryObject == NULL) {
         lastErrorInfo = L"Can't find \"NtQueryObject\" function";
         return false;
@@ -166,8 +169,8 @@ bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
     
     NTSTATUS status;
     ULONG returnedLength = 0;
-    ULONG typesSize = 0x10000;
-    POBJECT_TYPES_INFORMATION types = (POBJECT_TYPES_INFORMATION)std::malloc(typesSize);
+    auto typesSize = ULONG(UINT16_MAX) + 1;
+    auto types = static_cast<POBJECT_TYPES_INFORMATION>(std::malloc(typesSize));
 
     while ((status = NtQueryObject(
         NULL,
@@ -187,7 +190,7 @@ bool GetFileHandleTypeNumber(UCHAR &returnTypeIndex) {
             return false;
         }
         
-        types = (POBJECT_TYPES_INFORMATION)std::malloc(typesSize);
+        types = static_cast<POBJECT_TYPES_INFORMATION>(std::malloc(typesSize));
     }
 
     if(!NT_SUCCESS(status)) {
@@ -247,8 +250,10 @@ inline PWSTR ErrorInfoInPWSTR() {
 }
 
 void SearchFileHandlesModern(BuffObject * &currBuff) {
+#pragma warning(disable : 6387)
     _NtQueryInformationProcess NtQueryInformationProcess =
         (_NtQueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess");
+#pragma warning(default : 6387)
 
     if (NtQueryInformationProcess == NULL) {
         lastErrorInfo = L"Can't find \"NtQueryInformationProcess\" function";
@@ -318,8 +323,10 @@ void SearchFileHandlesModern(BuffObject * &currBuff) {
 }
 
 void SearchFileHandlesLegacy(BuffObject * &currBuff) {
+#pragma warning(disable : 6387)
     _NtQuerySystemInformation NtQuerySystemInformation = 
         (_NtQuerySystemInformation)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQuerySystemInformation");
+#pragma warning(default : 6387)
     if (NtQuerySystemInformation == NULL) {
         lastErrorInfo = L"Can't find \"NtQuerySystemInformation\" function";
         SendToDT(
@@ -398,8 +405,10 @@ void SearchFileHandles(BuffObject * &currBuff) {
 void GetFeaturesSupport() {
     const ULONG win8BuildNumber = 9200,
         winBlueBuildNumber = 9600;
-    _RtlGetNtVersionNumbers RtlGetNtVersionNumbers = 
-                (_RtlGetNtVersionNumbers)GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetNtVersionNumbers");
+#pragma warning(disable : 6387)
+    auto RtlGetNtVersionNumbers = 
+                (_RtlGetNtVersionNumbers)(GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlGetNtVersionNumbers"));
+#pragma warning(default : 6387)
     if(RtlGetNtVersionNumbers == NULL) {
         return;
     }
